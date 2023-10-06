@@ -5,23 +5,52 @@ import (
 	"fmt"
 	"github.com/dnsimple/dnsimple-go/dnsimple"
 	"github.com/matic-insurance/external-dns-dialer/provider"
+	"github.com/matic-insurance/external-dns-dialer/registry"
 	"golang.org/x/oauth2"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type dnsimpleProvider struct {
-	provider.BaseProvider
+	provider.Provider
 	client    *dnsimple.ZonesService
 	identity  *dnsimple.IdentityService
-	accountID interface{}
+	accountID string
+	zones     []registry.Zone
 }
 
 func (p dnsimpleProvider) Whoami() string {
 	return fmt.Sprintf("DNSimple for Account %s", p.accountID)
 }
 
-func NewDnsimpleProvider() (provider.Provider, error) {
+func (p dnsimpleProvider) AllRegistryRecords() (map[registry.Zone][]registry.Record, error) {
+	registryRecords := map[registry.Zone][]registry.Record{}
+	for _, zone := range p.zones {
+		page := 1
+		listOptions := &dnsimple.ZoneRecordListOptions{Type: dnsimple.String("TXT")}
+		for {
+			dnsRecords, err := p.client.ListRecords(context.Background(), p.accountID, zone.Name, listOptions)
+			if err != nil {
+				return nil, err
+			}
+			for _, dnsRecord := range dnsRecords.Data {
+				info := strings.Trim(dnsRecord.Content, "\"")
+				if strings.HasPrefix(info, registry.ExternalDnsIdentifier) {
+					name := fmt.Sprintf("%s.%s", dnsRecord.Name, dnsRecord.ZoneID)
+					registryRecords[zone] = append(registryRecords[zone], registry.NewRecord(zone, name, info))
+				}
+			}
+			page++
+			if page > dnsRecords.Pagination.TotalPages {
+				break
+			}
+		}
+	}
+	return registryRecords, nil
+}
+
+func NewDnsimpleProvider(zones []registry.Zone) (provider.Provider, error) {
 	oauthToken := os.Getenv("DNSIMPLE_OAUTH")
 	if len(oauthToken) == 0 {
 		return nil, fmt.Errorf("no dnsimple authentication provided provided (DNSIMPLE_OAUTH or DNSIMPLE_ACCOUNT/DNSIMPLE_TOKEN are missing)")
@@ -36,6 +65,7 @@ func NewDnsimpleProvider() (provider.Provider, error) {
 	providerInstance := &dnsimpleProvider{
 		client:   client.Zones,
 		identity: client.Identity,
+		zones:    zones,
 	}
 
 	whoamiResponse, err := providerInstance.identity.Whoami(context.Background())

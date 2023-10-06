@@ -1,8 +1,8 @@
 package provider
 
+import "github.com/matic-insurance/external-dns-dialer/registry"
+
 type Provider interface {
 	Whoami() string
-}
-
-type BaseProvider struct {
+	AllRegistryRecords() (map[registry.Zone][]registry.Record, error)
 }
