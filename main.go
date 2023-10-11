@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/matic-insurance/external-dns-dialer/pkg"
 	"github.com/matic-insurance/external-dns-dialer/provider/dnsimple"
 	"github.com/matic-insurance/external-dns-dialer/registry"
@@ -10,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -19,8 +19,44 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go handleSigterm(cancel)
-	//printRecords()
-	printEndpoints(ctx, cfg)
+	records := getRecords()
+	endpoints := getEndpoints(ctx, cfg)
+	printUncontrolledRecords(records, endpoints)
+}
+
+func printUncontrolledRecords(records []registry.Record, endpoints []registry.Endpoint) {
+	log.Infoln("List of registry records")
+	for _, dnsRecord := range records {
+		log.Infoln("Record: ", dnsRecord.Name, dnsRecord.Resource)
+	}
+	log.Infoln("List of endpoints")
+	for _, managedEndpoint := range endpoints {
+		log.Infoln("Endpoint: ", managedEndpoint.Host, managedEndpoint.Resource)
+	}
+	for _, managedEndpoint := range endpoints {
+		ownedByRegistry := false
+		if !strings.HasSuffix(managedEndpoint.Host, "matic.link") {
+			continue
+		}
+		for _, dnsRecord := range records {
+			if managedEndpoint.Resource == dnsRecord.Resource {
+				ownedByRegistry = true
+				if strings.HasPrefix(dnsRecord.Name, "k8s-staging") {
+					if dnsRecord.Owner == "matic" {
+						continue
+					} else {
+						log.Warnf("Cluster resource %s owned by another instance %s\n", managedEndpoint.Resource, dnsRecord.Owner)
+					}
+				} else {
+					log.Warnf("Cluster resource %s owned by deprecated instance %s:%s\n", managedEndpoint.Resource, dnsRecord.Owner, dnsRecord.Name)
+					continue
+				}
+			}
+		}
+		if !ownedByRegistry {
+			log.Warnf("Missing registry for %s for %s dns\n", managedEndpoint.Resource, managedEndpoint.Host)
+		}
+	}
 }
 
 func initConfig() *pkg.Config {
@@ -50,7 +86,7 @@ func handleSigterm(cancel func()) {
 	cancel()
 }
 
-func printEndpoints(ctx context.Context, cfg *pkg.Config) {
+func getEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoint {
 	// Create a source.Config from the flags passed by the user.
 	sourceCfg := &source.Config{
 		Namespace:      cfg.Namespace,
@@ -75,41 +111,37 @@ func printEndpoints(ctx context.Context, cfg *pkg.Config) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Fetching source endpoints")
+	log.Infoln("Fetching source endpoints")
 
-	for _, source := range sources {
-		endpoints, err := source.Endpoints(ctx)
+	var endpoints []registry.Endpoint
+	for _, endpointsSource := range sources {
+		sourceEndpoints, err := endpointsSource.Endpoints(ctx)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, endpoint := range endpoints {
-			fmt.Println(endpoint.Resource)
-		}
+		endpoints = append(endpoints, sourceEndpoints...)
 	}
+	return endpoints
 }
 
-func printRecords() {
+func getRecords() []registry.Record {
 	dnsimpleProvider, err := dnsimple.NewDnsimpleProvider([]registry.Zone{registry.NewZone("matic.link")})
 	if err != nil {
-		fmt.Printf("Cannot init dnSimple: %s\n", err)
-		os.Exit(1)
-	} else {
-		fmt.Printf("%s", dnsimpleProvider.Whoami())
+		log.Fatal(err)
 	}
 
-	fmt.Println("Fetching registry records")
-	records, err := dnsimpleProvider.AllRegistryRecords()
+	log.Infoln("Fetching registry records")
+	recordsMap, err := dnsimpleProvider.AllRegistryRecords()
 	if err != nil {
-		fmt.Printf("Cannot fetch registry records: %s\n", err)
-		os.Exit(1)
-	} else {
-		for zone, zoneRecords := range records {
-			fmt.Printf("Records for: %s\n", zone.Name)
-			for _, record := range zoneRecords {
-				fmt.Println(record.Info())
-			}
-		}
+		log.Fatal(err)
 	}
+
+	var allRecords []registry.Record
+	for _, zoneRecords := range recordsMap {
+		allRecords = append(allRecords, zoneRecords...)
+	}
+
+	return allRecords
 }
