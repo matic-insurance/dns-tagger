@@ -7,7 +7,6 @@ const OwnerId = "external-dns/owner="
 const ResourceId = "external-dns/resource="
 
 type Record struct {
-	Zone     Zone
 	info     string
 	Name     string
 	Owner    string
@@ -18,9 +17,17 @@ func (r Record) Info() string {
 	return r.info
 }
 
-func NewRecord(zone Zone, name string, info string) Record {
+func (r Record) IsManaging(host *Host) bool {
+	if r.Name == host.Name || strings.HasPrefix(r.Name, host.Name) || strings.HasSuffix(r.Name, host.Name) {
+		return true
+	} else {
+		return false
+	}
+}
+
+func NewRecord(name string, info string) *Record {
 	owner, resource := parseInfo(info)
-	return Record{Zone: zone, Name: name, Owner: owner, Resource: resource, info: info}
+	return &Record{Name: name, Owner: owner, Resource: resource, info: info}
 }
 
 func parseInfo(info string) (string, string) {

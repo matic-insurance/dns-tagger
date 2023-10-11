@@ -19,42 +19,50 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go handleSigterm(cancel)
-	records := getRecords()
-	endpoints := getEndpoints(ctx, cfg)
-	printUncontrolledRecords(records, endpoints)
+	registryRecords := getHosts(cfg)
+	sourceEndpoints := getSourceEndpoints(ctx, cfg)
+	printUncontrolledRecords(cfg, registryRecords, sourceEndpoints)
 }
 
-func printUncontrolledRecords(records []registry.Record, endpoints []registry.Endpoint) {
-	log.Infoln("List of registry records")
-	for _, dnsRecord := range records {
-		log.Infoln("Record: ", dnsRecord.Name, dnsRecord.Resource)
+func printUncontrolledRecords(cfg *pkg.Config, hosts []*registry.Host, sourceEndpoints []registry.Endpoint) {
+	log.Debugln("List of Hosts")
+	for _, host := range hosts {
+		log.Debugln("Discovered Host: ", host)
 	}
-	log.Infoln("List of endpoints")
-	for _, managedEndpoint := range endpoints {
-		log.Infoln("Endpoint: ", managedEndpoint.Host, managedEndpoint.Resource)
+	log.Debugln("List of source endpoints")
+	for _, sourceEndpoint := range sourceEndpoints {
+		log.Debugln("Endpoint: ", sourceEndpoint.Host, sourceEndpoint.Resource)
 	}
-	for _, managedEndpoint := range endpoints {
-		ownedByRegistry := false
-		if !strings.HasSuffix(managedEndpoint.Host, "matic.link") {
+
+	supportedOwners := strings.Join(cfg.PreviousOwnerIDs, ",")
+	for _, sourceEndpoint := range sourceEndpoints {
+		if !strings.HasSuffix(sourceEndpoint.Host, "matic.link") {
 			continue
 		}
-		for _, dnsRecord := range records {
-			if managedEndpoint.Resource == dnsRecord.Resource {
-				ownedByRegistry = true
-				if strings.HasPrefix(dnsRecord.Name, "k8s-staging") {
-					if dnsRecord.Owner == "matic" {
-						continue
-					} else {
-						log.Warnf("Cluster resource %s owned by another instance %s\n", managedEndpoint.Resource, dnsRecord.Owner)
+		ownedByRegistry := false
+		for _, host := range hosts {
+			if sourceEndpoint.Host == host.Name {
+				if host.IsManaged() {
+					ownedByRegistry = true
+					for _, registryRecord := range host.RegistryRecords {
+						if registryRecord.Owner != cfg.CurrentOwnerID {
+							if strings.Contains(supportedOwners, registryRecord.Owner) {
+								log.Warnf("Registry owner should be updated for %s\n", registryRecord)
+							} else {
+								log.Warnf("Unsupported registry owner, cannot update %s\n", registryRecord)
+							}
+						}
+						if registryRecord.Resource != sourceEndpoint.Resource {
+							log.Warnf("Wrong resource information %s\n", registryRecord)
+						}
 					}
 				} else {
-					log.Warnf("Cluster resource %s owned by deprecated instance %s:%s\n", managedEndpoint.Resource, dnsRecord.Owner, dnsRecord.Name)
-					continue
+					log.Warnf("Missing registry for %s for %s dns\n", sourceEndpoint.Resource, sourceEndpoint.Host)
 				}
 			}
 		}
 		if !ownedByRegistry {
-			log.Warnf("Missing registry for %s for %s dns\n", managedEndpoint.Resource, managedEndpoint.Host)
+			log.Warnf("Missing host record for %s for %s dns\n", sourceEndpoint.Resource, sourceEndpoint.Host)
 		}
 	}
 }
@@ -86,7 +94,7 @@ func handleSigterm(cancel func()) {
 	cancel()
 }
 
-func getEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoint {
+func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoint {
 	// Create a source.Config from the flags passed by the user.
 	sourceCfg := &source.Config{
 		Namespace:      cfg.Namespace,
@@ -126,22 +134,22 @@ func getEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoint {
 	return endpoints
 }
 
-func getRecords() []registry.Record {
-	dnsimpleProvider, err := dnsimple.NewDnsimpleProvider([]registry.Zone{registry.NewZone("matic.link")})
+func getHosts(*pkg.Config) []*registry.Host {
+	dnsimpleProvider, err := dnsimple.NewDnsimpleProvider([]string{"matic.link"})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Infoln("Fetching registry records")
-	recordsMap, err := dnsimpleProvider.AllRegistryRecords()
+	zones, err := dnsimpleProvider.ReadZones()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var allRecords []registry.Record
-	for _, zoneRecords := range recordsMap {
-		allRecords = append(allRecords, zoneRecords...)
+	allHosts := make([]*registry.Host, 0)
+	for _, zone := range zones {
+		allHosts = append(allHosts, zone.Hosts...)
 	}
 
-	return allRecords
+	return allHosts
 }
