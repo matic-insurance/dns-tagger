@@ -30,6 +30,7 @@ func (p dnsimpleProvider) AllRegistryRecords() (map[registry.Zone][]registry.Rec
 		page := 1
 		listOptions := &dnsimple.ZoneRecordListOptions{Type: dnsimple.String("TXT")}
 		for {
+			listOptions.ListOptions.Page = &page
 			dnsRecords, err := p.client.ListRecords(context.Background(), p.accountID, zone.Name, listOptions)
 			if err != nil {
 				return nil, err
