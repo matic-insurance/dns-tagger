@@ -27,7 +27,7 @@ func main() {
 }
 
 func configureNewOwner(selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
-	updatedRecords, err := selector.ConfigureNewOwner(endpoints, zones)
+	updatedRecords, err := selector.ClaimEndpointsOwnership(endpoints, zones)
 	if err != nil {
 		log.Fatalf("Owner updates aborted: %s", err)
 	}

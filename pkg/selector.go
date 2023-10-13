@@ -15,7 +15,7 @@ func NewSelector(cfg *Config, provider provider.Provider) *Selector {
 	return &Selector{cfg: cfg, provider: provider}
 }
 
-func (s *Selector) ConfigureNewOwner(endpoints []*registry.Endpoint, zones []*registry.Zone) (updatedRecords int, err error) {
+func (s *Selector) ClaimEndpointsOwnership(endpoints []*registry.Endpoint, zones []*registry.Zone) (updatedRecords int, err error) {
 	for _, endpoint := range endpoints {
 		log.Debugf("Processing '%s'", endpoint)
 		zone := findEndpointZone(endpoint, zones)
@@ -23,7 +23,7 @@ func (s *Selector) ConfigureNewOwner(endpoints []*registry.Endpoint, zones []*re
 			log.Warnf("Can't find DNS zone information for '%s'", endpoint)
 			continue
 		}
-		newUpdatedRecords, err := s.UpdateRegistryRecords(endpoint, zone)
+		newUpdatedRecords, err := s.claimEndpoint(endpoint, zone)
 		if err != nil {
 			return updatedRecords, err
 		}
@@ -32,7 +32,7 @@ func (s *Selector) ConfigureNewOwner(endpoints []*registry.Endpoint, zones []*re
 	return updatedRecords, nil
 }
 
-func (s *Selector) UpdateRegistryRecords(endpoint *registry.Endpoint, zone *registry.Zone) (updatedRecords int, err error) {
+func (s *Selector) claimEndpoint(endpoint *registry.Endpoint, zone *registry.Zone) (updatedRecords int, err error) {
 	hostDiscovered := false
 	for _, host := range zone.Hosts {
 		if endpoint.Host == host.Name {
@@ -40,27 +40,21 @@ func (s *Selector) UpdateRegistryRecords(endpoint *registry.Endpoint, zone *regi
 			hostDiscovered = true
 			if host.IsManaged() {
 				for _, registryRecord := range host.RegistryRecords {
-					updatedRecord := registryRecord
-					if registryRecord.Owner == s.cfg.CurrentOwnerID {
+					if s.isAlreadyOwned(registryRecord.Owner) {
 						log.Debugf("Owner info up to date for '%s'", registryRecord)
-					} else {
-						if s.isPreviousOwnerAllowed(registryRecord.Owner) {
-							log.Infof("Updating owner info for '%s' to '%s'", registryRecord, s.cfg.CurrentOwnerID)
-							updatedRecord = updatedRecord.NewOwner(s.cfg.CurrentOwnerID)
-						} else {
-							log.Warnf("Owner not updated. Unsupported previous owner. '%s'", registryRecord.Owner)
-						}
+						continue
 					}
-					if registryRecord.Resource != endpoint.Resource {
-						log.Infof("Updating resource info for '%s' to '%s'", registryRecord, endpoint.Resource)
-						updatedRecord = updatedRecord.NewResource(endpoint.Resource)
+					if !s.isAllowedOwner(registryRecord.Owner) {
+						log.Warnf("Owner not updated. Unsupported previous owner. '%s'", registryRecord.Owner)
+						continue
 					}
-					if registryRecord != updatedRecord {
-						updates, err := s.provider.UpdateRegistryRecord(zone, updatedRecord)
-						if err != nil {
-							return updatedRecords, err
-						}
-						updatedRecords += updates
+
+					log.Infof("Updating owner info for '%s' to '%s'", registryRecord, s.cfg.CurrentOwnerID)
+					updatedRecord := registryRecord.ClaimOwnership(s.cfg.CurrentOwnerID, endpoint.Resource)
+					updates, err := s.provider.UpdateRegistryRecord(zone, updatedRecord)
+					updatedRecords += updates
+					if err != nil {
+						return updatedRecords, err
 					}
 				}
 			} else {
@@ -74,7 +68,11 @@ func (s *Selector) UpdateRegistryRecords(endpoint *registry.Endpoint, zone *regi
 	return updatedRecords, nil
 }
 
-func (s *Selector) isPreviousOwnerAllowed(owner string) bool {
+func (s *Selector) isAlreadyOwned(owner string) bool {
+	return owner == s.cfg.CurrentOwnerID
+}
+
+func (s *Selector) isAllowedOwner(owner string) bool {
 	for _, previousOwner := range s.cfg.PreviousOwnerIDs {
 		if previousOwner == owner {
 			return true

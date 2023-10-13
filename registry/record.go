@@ -21,15 +21,21 @@ func (r Record) Info() string {
 }
 
 func (r Record) IsManaging(host *Host) bool {
-	if r.Name == host.Name || strings.HasPrefix(r.Name, host.Name) || strings.HasSuffix(r.Name, host.Name) {
+	// Exact match of registry with prefix
+	if r.Name == host.Name || strings.HasSuffix(r.Name, host.Name) {
 		return true
-	} else {
-		return false
 	}
+	// registry with suffix
+	recordParts := strings.SplitN(r.Name, ".", 2)
+	hostParts := strings.SplitN(host.Name, ".", 2)
+	if strings.HasPrefix(recordParts[0], hostParts[0]) && recordParts[1] == hostParts[1] {
+		return true
+	}
+	return false
 }
 
-func (r Record) NewOwner(ownerId string) *Record {
-	return &Record{Name: r.Name, Owner: ownerId, Resource: r.Resource}
+func (r Record) ClaimOwnership(ownerId string, resource string) *Record {
+	return &Record{Name: r.Name, Owner: ownerId, Resource: resource}
 }
 
 func (r Record) NewResource(resource string) *Record {

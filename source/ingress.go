@@ -123,14 +123,13 @@ func endpointsFromIngress(ing *networkv1.Ingress) []*registry.Endpoint {
 		if rule.Host == "" {
 			continue
 		}
-		definedHostsEndpoints = append(definedHostsEndpoints, registry.NewEndpoint(resource, rule.Host, targets))
-
+		definedHostsEndpoints = append(definedHostsEndpoints, registry.NewEndpoint(rule.Host, resource, targets))
 	}
 
 	// Gather endpoints defined on annotations in the ingress
 	var annotationEndpoints []*registry.Endpoint
 	for _, hostname := range getHostnamesFromAnnotations(ing.Annotations) {
-		annotationEndpoints = append(annotationEndpoints, registry.NewEndpoint(resource, hostname, targets))
+		annotationEndpoints = append(annotationEndpoints, registry.NewEndpoint(hostname, resource, targets))
 	}
 
 	// Include endpoints according to the hostname source annotation in our final list

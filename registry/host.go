@@ -11,9 +11,9 @@ type Host struct {
 
 func (h *Host) String() string {
 	if h.IsManaged() {
-		return fmt.Sprintf("Host (Managed): %s, Registries: %s", h.Name, h.RegistryRecords)
+		return fmt.Sprintf("Host[Managed][Dns:%s]", h.Name)
 	} else {
-		return fmt.Sprintf("Host (Unmanaged): %s", h.Name)
+		return fmt.Sprintf("Host[Unmanaged][Dns:%s]", h.Name)
 	}
 }
 
