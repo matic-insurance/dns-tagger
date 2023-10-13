@@ -20,14 +20,14 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go handleSigterm(cancel)
 
-	registryRecords, dnsProvider := getZones(cfg)
+	registryRecords, dnsProvider := getZones(ctx, cfg)
 	sourceEndpoints := getSourceEndpoints(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
-	configureNewOwner(selector, sourceEndpoints, registryRecords)
+	configureNewOwner(ctx, selector, sourceEndpoints, registryRecords)
 }
 
-func configureNewOwner(selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
-	updatedRecords, err := selector.ClaimEndpointsOwnership(endpoints, zones)
+func configureNewOwner(ctx context.Context, selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
+	updatedRecords, err := selector.ClaimEndpointsOwnership(ctx, endpoints, zones)
 	if err != nil {
 		log.Fatalf("Owner updates aborted: %s", err)
 	}
@@ -101,14 +101,14 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 	return endpoints
 }
 
-func getZones(cfg *pkg.Config) ([]*registry.Zone, provider.Provider) {
+func getZones(ctx context.Context, cfg *pkg.Config) ([]*registry.Zone, provider.Provider) {
 	dnsProvider, err := dnsimple.NewDnsimpleProvider(cfg, []string{"matic.link"})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Info("Fetching registry records")
-	zones, err := dnsProvider.ReadZones()
+	zones, err := dnsProvider.ReadZones(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

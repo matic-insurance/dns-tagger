@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"errors"
 	"github.com/matic-insurance/external-dns-dialer/registry"
 	"github.com/stretchr/testify/assert"
@@ -23,16 +24,16 @@ type mockProvider struct {
 	mock.Mock
 }
 
-func (p *mockProvider) ReadZones() ([]*registry.Zone, error) {
+func (p *mockProvider) ReadZones(ctx context.Context) ([]*registry.Zone, error) {
 	panic("implement me")
 }
 
-func (p *mockProvider) UpdateRegistryRecord(zone *registry.Zone, record *registry.Record) (updatedRecords int, err error) {
-	args := p.Called(zone, record)
+func (p *mockProvider) UpdateRegistryRecord(ctx context.Context, zone *registry.Zone, record *registry.Record) (updatedRecords int, err error) {
+	args := p.Called(ctx, zone, record)
 	return args.Int(0), args.Error(1)
 }
 
-func (p *mockProvider) Whoami() string {
+func (p *mockProvider) Whoami(ctx context.Context) string {
 	panic("implement me")
 }
 
@@ -42,7 +43,7 @@ func TestSelector_UpdateRegistryRecords_NoEndpointHost(t *testing.T) {
 	endpoint := &registry.Endpoint{Host: "another.dummy.host", Resource: testEndpointResource}
 	zone := createTestZone(cfg.PreviousOwnerIDs[0], "ingress/test/webserver")
 
-	updates, err := selector.claimEndpoint(endpoint, zone)
+	updates, err := selector.claimEndpoint(context.Background(), endpoint, zone)
 	testProvider.AssertNotCalled(t, "UpdateRegistryRecord")
 	assert.Equal(t, 0, updates, "Zero updates count returned")
 	assert.NoError(t, err)
@@ -54,7 +55,7 @@ func TestSelector_UpdateRegistryRecords_SameOwner(t *testing.T) {
 	endpoint := &registry.Endpoint{Host: testEndpointHost, Resource: testEndpointResource}
 	zone := createTestZone(currentOwnerId, testEndpointResource)
 
-	updates, err := selector.claimEndpoint(endpoint, zone)
+	updates, err := selector.claimEndpoint(context.Background(), endpoint, zone)
 	testProvider.AssertNotCalled(t, "UpdateRegistryRecord")
 	assert.Equal(t, 0, updates, "Zero updates count returned")
 	assert.NoError(t, err)
@@ -66,7 +67,7 @@ func TestSelector_UpdateRegistryRecords_NotAllowedOwner(t *testing.T) {
 	endpoint := &registry.Endpoint{Host: testEndpointHost, Resource: testEndpointResource}
 	zone := createTestZone("cluster-0", testEndpointResource)
 
-	updates, err := selector.claimEndpoint(endpoint, zone)
+	updates, err := selector.claimEndpoint(context.Background(), endpoint, zone)
 	testProvider.AssertNotCalled(t, "UpdateRegistryRecord")
 	assert.Equal(t, 0, updates, "Zero updates count returned")
 	assert.NoError(t, err)
@@ -78,10 +79,10 @@ func TestSelector_UpdateRegistryRecords_ProviderError(t *testing.T) {
 	endpoint := &registry.Endpoint{Host: testEndpointHost, Resource: testEndpointResource}
 	zone := createTestZone(cfg.PreviousOwnerIDs[0], testEndpointResource)
 
-	testProvider.On("UpdateRegistryRecord", mock.Anything, mock.Anything).Return(1, nil).Once()
-	testProvider.On("UpdateRegistryRecord", mock.Anything, mock.Anything).Return(0, errors.New("test"))
+	testProvider.On("UpdateRegistryRecord", context.Background(), mock.Anything, mock.Anything).Return(1, nil).Once()
+	testProvider.On("UpdateRegistryRecord", context.Background(), mock.Anything, mock.Anything).Return(0, errors.New("test"))
 
-	updates, err := selector.claimEndpoint(endpoint, zone)
+	updates, err := selector.claimEndpoint(context.Background(), endpoint, zone)
 	assert.Equal(t, 1, updates, "Made updates count returned")
 	assert.Error(t, err)
 }
@@ -92,14 +93,14 @@ func TestSelector_UpdateRegistryRecords_MultipleRegistries(t *testing.T) {
 	endpoint := &registry.Endpoint{Host: testEndpointHost, Resource: testEndpointResource}
 	zone := createTestZone(cfg.PreviousOwnerIDs[0], "")
 
-	testProvider.On("UpdateRegistryRecord", zone, mock.MatchedBy(func(record *registry.Record) bool {
+	testProvider.On("UpdateRegistryRecord", context.Background(), zone, mock.MatchedBy(func(record *registry.Record) bool {
 		return record.Owner == currentOwnerId && record.Resource == testEndpointResource && record.Name == "registry1-"+testEndpointHost
 	})).Return(1, nil)
-	testProvider.On("UpdateRegistryRecord", zone, mock.MatchedBy(func(record *registry.Record) bool {
+	testProvider.On("UpdateRegistryRecord", context.Background(), zone, mock.MatchedBy(func(record *registry.Record) bool {
 		return record.Owner == currentOwnerId && record.Resource == testEndpointResource && record.Name == "registry1-cname-"+testEndpointHost
 	})).Return(1, nil)
 
-	updates, err := selector.claimEndpoint(endpoint, zone)
+	updates, err := selector.claimEndpoint(context.Background(), endpoint, zone)
 	testProvider.AssertNumberOfCalls(t, "UpdateRegistryRecord", 2)
 	assert.Equal(t, 2, updates, "Correct updates count returned")
 	assert.NoError(t, err)

@@ -7,7 +7,6 @@ import (
 	"github.com/matic-insurance/external-dns-dialer/pkg"
 	"github.com/matic-insurance/external-dns-dialer/provider"
 	"github.com/matic-insurance/external-dns-dialer/registry"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"os"
@@ -18,13 +17,19 @@ import (
 type dnsimpleProvider struct {
 	provider.BaseProvider
 	cfg       *pkg.Config
-	client    *dnsimple.ZonesService
+	client    dnsimpleZoneServiceApi
 	identity  *dnsimple.IdentityService
 	accountID string
 	zones     []string
 }
 
-func (p dnsimpleProvider) Whoami() string {
+type dnsimpleZoneServiceApi interface {
+	ListZones(ctx context.Context, accountID string, options *dnsimple.ZoneListOptions) (*dnsimple.ZonesResponse, error)
+	ListRecords(ctx context.Context, accountID string, zoneID string, options *dnsimple.ZoneRecordListOptions) (*dnsimple.ZoneRecordsResponse, error)
+	UpdateRecord(ctx context.Context, accountID string, zoneID string, recordID int64, recordAttributes dnsimple.ZoneRecordAttributes) (*dnsimple.ZoneRecordResponse, error)
+}
+
+func (p dnsimpleProvider) Whoami(ctx context.Context) string {
 	return fmt.Sprintf("DNSimple for Account %s", p.accountID)
 }
 
@@ -55,7 +60,7 @@ func NewDnsimpleProvider(cfg *pkg.Config, zones []string) (provider.Provider, er
 	return providerInstance, nil
 }
 
-func (p dnsimpleProvider) ReadZones() ([]*registry.Zone, error) {
+func (p dnsimpleProvider) ReadZones(ctx context.Context) ([]*registry.Zone, error) {
 	zones := make([]*registry.Zone, 0)
 	for _, zone := range p.zones {
 		currentZone := registry.NewZone(zone)
@@ -99,13 +104,45 @@ func (p dnsimpleProvider) ReadZones() ([]*registry.Zone, error) {
 	return zones, nil
 }
 
-func (p dnsimpleProvider) UpdateRegistryRecord(zone *registry.Zone, record *registry.Record) (int, error) {
+func (p dnsimpleProvider) UpdateRegistryRecord(ctx context.Context, zone *registry.Zone, record *registry.Record) (int, error) {
 	if p.cfg.DryRun {
 		log.Infof("Dry Run: Updated %s registry value to %s", record.Name, record.Info())
 		return 1, nil
 	} else {
-		return 0, errors.New("DNSimple.UpdateRegistryRecord not implemented")
+		recordID, err := p.getRecordID(ctx, zone, record.Name)
+		if err != nil {
+			return 0, err
+		}
+		_, err = p.client.UpdateRecord(ctx, p.accountID, zone.Name, recordID, dnsimple.ZoneRecordAttributes{Content: record.Info()})
+		if err != nil {
+			return 0, err
+		}
+		return 1, nil
 	}
+}
+
+func (p dnsimpleProvider) getRecordID(ctx context.Context, zone *registry.Zone, recordName string) (recordID int64, err error) {
+	page := 1
+	listOptions := &dnsimple.ZoneRecordListOptions{Name: &recordName}
+	for {
+		listOptions.Page = &page
+		records, err := p.client.ListRecords(ctx, p.accountID, zone.Name, listOptions)
+		if err != nil {
+			return 0, err
+		}
+
+		for _, record := range records.Data {
+			if record.Name == recordName {
+				return record.ID, nil
+			}
+		}
+
+		page++
+		if page > records.Pagination.TotalPages {
+			break
+		}
+	}
+	return 0, fmt.Errorf("no record id found")
 }
 
 func int64ToString(i int64) string {

@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"github.com/matic-insurance/external-dns-dialer/provider"
 	"github.com/matic-insurance/external-dns-dialer/registry"
 	log "github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ func NewSelector(cfg *Config, provider provider.Provider) *Selector {
 	return &Selector{cfg: cfg, provider: provider}
 }
 
-func (s *Selector) ClaimEndpointsOwnership(endpoints []*registry.Endpoint, zones []*registry.Zone) (updatedRecords int, err error) {
+func (s *Selector) ClaimEndpointsOwnership(ctx context.Context, endpoints []*registry.Endpoint, zones []*registry.Zone) (updatedRecords int, err error) {
 	for _, endpoint := range endpoints {
 		log.Debugf("Processing '%s'", endpoint)
 		zone := findEndpointZone(endpoint, zones)
@@ -23,7 +24,7 @@ func (s *Selector) ClaimEndpointsOwnership(endpoints []*registry.Endpoint, zones
 			log.Warnf("Can't find DNS zone information for '%s'", endpoint)
 			continue
 		}
-		newUpdatedRecords, err := s.claimEndpoint(endpoint, zone)
+		newUpdatedRecords, err := s.claimEndpoint(ctx, endpoint, zone)
 		if err != nil {
 			return updatedRecords, err
 		}
@@ -32,7 +33,7 @@ func (s *Selector) ClaimEndpointsOwnership(endpoints []*registry.Endpoint, zones
 	return updatedRecords, nil
 }
 
-func (s *Selector) claimEndpoint(endpoint *registry.Endpoint, zone *registry.Zone) (updatedRecords int, err error) {
+func (s *Selector) claimEndpoint(ctx context.Context, endpoint *registry.Endpoint, zone *registry.Zone) (updatedRecords int, err error) {
 	hostDiscovered := false
 	for _, host := range zone.Hosts {
 		if endpoint.Host == host.Name {
@@ -51,7 +52,7 @@ func (s *Selector) claimEndpoint(endpoint *registry.Endpoint, zone *registry.Zon
 
 					log.Infof("Updating owner info for '%s' to '%s'", registryRecord, s.cfg.CurrentOwnerID)
 					updatedRecord := registryRecord.ClaimOwnership(s.cfg.CurrentOwnerID, endpoint.Resource)
-					updates, err := s.provider.UpdateRegistryRecord(zone, updatedRecord)
+					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
 					updatedRecords += updates
 					if err != nil {
 						return updatedRecords, err
