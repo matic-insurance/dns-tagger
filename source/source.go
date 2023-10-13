@@ -16,7 +16,7 @@ const (
 )
 
 type Source interface {
-	Endpoints(ctx context.Context) ([]registry.Endpoint, error)
+	Endpoints(ctx context.Context) ([]*registry.Endpoint, error)
 	// AddEventHandler adds an event handler that should be triggered if something in source changes
 	AddEventHandler(context.Context, func())
 }

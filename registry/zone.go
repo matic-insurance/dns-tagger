@@ -1,5 +1,7 @@
 package registry
 
+import "strings"
+
 const RegistryRecordType = "TXT"
 
 type Zone struct {
@@ -26,4 +28,8 @@ func (z *Zone) IsRegistryRecordType(recordType string) bool {
 
 func (z *Zone) AddHost(record *Host) {
 	z.Hosts = append(z.Hosts, record)
+}
+
+func (z *Zone) IsManagingEndpoint(endpoint *Endpoint) bool {
+	return strings.HasSuffix(endpoint.Host, z.Name)
 }

@@ -80,13 +80,13 @@ func NewIngressSource(ctx context.Context, kubeClient kubernetes.Interface, name
 
 // Endpoints returns endpoint objects for each host-target combination that should be processed.
 // Retrieves all ingress resources on all namespaces
-func (sc *ingressSource) Endpoints(ctx context.Context) ([]registry.Endpoint, error) {
+func (sc *ingressSource) Endpoints(ctx context.Context) ([]*registry.Endpoint, error) {
 	ingresses, err := sc.ingressInformer.Lister().Ingresses(sc.namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	endpoints := []registry.Endpoint{}
+	var endpoints []*registry.Endpoint
 
 	for _, ing := range ingresses {
 		// Check controller annotation to see if we are responsible.
@@ -112,12 +112,12 @@ func (sc *ingressSource) Endpoints(ctx context.Context) ([]registry.Endpoint, er
 }
 
 // endpointsFromIngress extracts the endpoints from ingress object
-func endpointsFromIngress(ing *networkv1.Ingress) []registry.Endpoint {
+func endpointsFromIngress(ing *networkv1.Ingress) []*registry.Endpoint {
 	resource := fmt.Sprintf("ingress/%s/%s", ing.Namespace, ing.Name)
 
 	targets := targetsFromIngressStatus(ing.Status)
 
-	var definedHostsEndpoints []registry.Endpoint
+	var definedHostsEndpoints []*registry.Endpoint
 	// Gather endpoints defined on hosts sections of the ingress
 	for _, rule := range ing.Spec.Rules {
 		if rule.Host == "" {
@@ -128,13 +128,13 @@ func endpointsFromIngress(ing *networkv1.Ingress) []registry.Endpoint {
 	}
 
 	// Gather endpoints defined on annotations in the ingress
-	var annotationEndpoints []registry.Endpoint
+	var annotationEndpoints []*registry.Endpoint
 	for _, hostname := range getHostnamesFromAnnotations(ing.Annotations) {
 		annotationEndpoints = append(annotationEndpoints, registry.NewEndpoint(resource, hostname, targets))
 	}
 
 	// Include endpoints according to the hostname source annotation in our final list
-	var endpoints []registry.Endpoint
+	var endpoints []*registry.Endpoint
 	endpoints = append(endpoints, definedHostsEndpoints...)
 	endpoints = append(endpoints, annotationEndpoints...)
 

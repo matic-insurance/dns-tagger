@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"github.com/matic-insurance/external-dns-dialer/pkg"
+	"github.com/matic-insurance/external-dns-dialer/provider"
 	"github.com/matic-insurance/external-dns-dialer/provider/dnsimple"
 	"github.com/matic-insurance/external-dns-dialer/registry"
 	"github.com/matic-insurance/external-dns-dialer/source"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -19,52 +19,19 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go handleSigterm(cancel)
-	registryRecords := getHosts(cfg)
+
+	registryRecords, dnsProvider := getZones(cfg)
 	sourceEndpoints := getSourceEndpoints(ctx, cfg)
-	printUncontrolledRecords(cfg, registryRecords, sourceEndpoints)
+	selector := pkg.NewSelector(cfg, dnsProvider)
+	configureNewOwner(selector, sourceEndpoints, registryRecords)
 }
 
-func printUncontrolledRecords(cfg *pkg.Config, hosts []*registry.Host, sourceEndpoints []registry.Endpoint) {
-	log.Debugln("List of Hosts")
-	for _, host := range hosts {
-		log.Debugln("Discovered Host: ", host)
+func configureNewOwner(selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
+	updatedRecords, err := selector.ConfigureNewOwner(endpoints, zones)
+	if err != nil {
+		log.Fatalf("Owner updates aborted: %s", err)
 	}
-	log.Debugln("List of source endpoints")
-	for _, sourceEndpoint := range sourceEndpoints {
-		log.Debugln("Endpoint: ", sourceEndpoint.Host, sourceEndpoint.Resource)
-	}
-
-	supportedOwners := strings.Join(cfg.PreviousOwnerIDs, ",")
-	for _, sourceEndpoint := range sourceEndpoints {
-		if !strings.HasSuffix(sourceEndpoint.Host, "matic.link") {
-			continue
-		}
-		ownedByRegistry := false
-		for _, host := range hosts {
-			if sourceEndpoint.Host == host.Name {
-				if host.IsManaged() {
-					ownedByRegistry = true
-					for _, registryRecord := range host.RegistryRecords {
-						if registryRecord.Owner != cfg.CurrentOwnerID {
-							if strings.Contains(supportedOwners, registryRecord.Owner) {
-								log.Warnf("Registry owner should be updated for %s\n", registryRecord)
-							} else {
-								log.Warnf("Unsupported registry owner, cannot update %s\n", registryRecord)
-							}
-						}
-						if registryRecord.Resource != sourceEndpoint.Resource {
-							log.Warnf("Wrong resource information %s\n", registryRecord)
-						}
-					}
-				} else {
-					log.Warnf("Missing registry for %s for %s dns\n", sourceEndpoint.Resource, sourceEndpoint.Host)
-				}
-			}
-		}
-		if !ownedByRegistry {
-			log.Warnf("Missing host record for %s for %s dns\n", sourceEndpoint.Resource, sourceEndpoint.Host)
-		}
-	}
+	log.Infof("Finished updating registry records. Updated '%d' records", updatedRecords)
 }
 
 func initConfig() *pkg.Config {
@@ -94,7 +61,7 @@ func handleSigterm(cancel func()) {
 	cancel()
 }
 
-func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoint {
+func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoint {
 	// Create a source.Config from the flags passed by the user.
 	sourceCfg := &source.Config{
 		Namespace:      cfg.Namespace,
@@ -119,9 +86,9 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoin
 		log.Fatal(err)
 	}
 
-	log.Infoln("Fetching source endpoints")
+	log.Info("Fetching source endpoints")
 
-	var endpoints []registry.Endpoint
+	var endpoints []*registry.Endpoint
 	for _, endpointsSource := range sources {
 		sourceEndpoints, err := endpointsSource.Endpoints(ctx)
 
@@ -134,14 +101,14 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []registry.Endpoin
 	return endpoints
 }
 
-func getHosts(*pkg.Config) []*registry.Host {
-	dnsimpleProvider, err := dnsimple.NewDnsimpleProvider([]string{"matic.link"})
+func getZones(cfg *pkg.Config) ([]*registry.Zone, provider.Provider) {
+	dnsProvider, err := dnsimple.NewDnsimpleProvider(cfg, []string{"matic.link"})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Infoln("Fetching registry records")
-	zones, err := dnsimpleProvider.ReadZones()
+	log.Info("Fetching registry records")
+	zones, err := dnsProvider.ReadZones()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -151,5 +118,5 @@ func getHosts(*pkg.Config) []*registry.Host {
 		allHosts = append(allHosts, zone.Hosts...)
 	}
 
-	return allHosts
+	return zones, dnsProvider
 }

@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/dnsimple/dnsimple-go/dnsimple"
+	"github.com/matic-insurance/external-dns-dialer/pkg"
 	"github.com/matic-insurance/external-dns-dialer/provider"
 	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"os"
 	"strconv"
@@ -14,6 +17,7 @@ import (
 
 type dnsimpleProvider struct {
 	provider.BaseProvider
+	cfg       *pkg.Config
 	client    *dnsimple.ZonesService
 	identity  *dnsimple.IdentityService
 	accountID string
@@ -24,7 +28,7 @@ func (p dnsimpleProvider) Whoami() string {
 	return fmt.Sprintf("DNSimple for Account %s", p.accountID)
 }
 
-func NewDnsimpleProvider(zones []string) (provider.Provider, error) {
+func NewDnsimpleProvider(cfg *pkg.Config, zones []string) (provider.Provider, error) {
 	oauthToken := os.Getenv("DNSIMPLE_OAUTH")
 	if len(oauthToken) == 0 {
 		return nil, fmt.Errorf("no dnsimple authentication provided provided (DNSIMPLE_OAUTH or DNSIMPLE_ACCOUNT/DNSIMPLE_TOKEN are missing)")
@@ -37,6 +41,7 @@ func NewDnsimpleProvider(zones []string) (provider.Provider, error) {
 	client.SetUserAgent(fmt.Sprintf("Kubernetes ExternalDNS Dialer"))
 
 	providerInstance := &dnsimpleProvider{
+		cfg:      cfg,
 		client:   client.Zones,
 		identity: client.Identity,
 		zones:    zones,
@@ -92,6 +97,15 @@ func (p dnsimpleProvider) ReadZones() ([]*registry.Zone, error) {
 		zones = append(zones, currentZone)
 	}
 	return zones, nil
+}
+
+func (p dnsimpleProvider) UpdateRegistryRecord(zone *registry.Zone, record *registry.Record) (int, error) {
+	if p.cfg.DryRun {
+		log.Infof("Dry Run: Updated %s registry value to %s", record.Name, record.Info())
+		return 1, nil
+	} else {
+		return 0, errors.New("DNSimple.UpdateRegistryRecord not implemented")
+	}
 }
 
 func int64ToString(i int64) string {

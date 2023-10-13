@@ -101,7 +101,7 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Flag("dry-run", "When enabled, prints DNS record changes rather than actually performing them (default: disabled)").BoolVar(&cfg.DryRun)
 	app.Flag("current-owner-id", "What owner id to set when records changing ownership").Required().StringVar(&cfg.CurrentOwnerID)
 	app.Flag("previous-owner-id", "What previous owner ids are allowed for migration").Required().PlaceHolder("previous-owner-id").StringsVar(&cfg.PreviousOwnerIDs)
-	app.Flag("previous-txt-prefix", "What previous txt prefixes are allowed for migration").Required().PlaceHolder("previous-txt-prefix").StringsVar(&cfg.PreviousTxtPrefixes)
+	//app.Flag("previous-txt-prefix", "What previous txt prefixes are allowed for migration").Required().PlaceHolder("previous-txt-prefix").StringsVar(&cfg.PreviousTxtPrefixes)
 
 	app.Flag("events", "When enabled, in addition to running every interval, the reconciliation loop will get triggered when supported sources change (default: disabled)").BoolVar(&cfg.UpdateEvents)
 
