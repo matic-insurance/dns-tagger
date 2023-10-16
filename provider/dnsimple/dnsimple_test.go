@@ -40,7 +40,7 @@ func testDnsimpleProviderUpdateRegistryRecord_NoApply(t *testing.T) {
 func testDnsimpleProviderUpdateRegistryRecord_Success(t *testing.T) {
 	record := &registry.Record{Name: "webserver.dummy.host", Owner: "cluster-1", Resource: "ingress/test/webserver"}
 
-	dnsimpleRecords := []dnsimple.ZoneRecord{{ID: 234, Name: "webserver.dummy.host"}}
+	dnsimpleRecords := []dnsimple.ZoneRecord{{ID: 234, Name: "webserver"}}
 	testApi.On("ListRecords", context.Background(), "123", zone.Name, mock.Anything).Return(dnsimpleZoneResponse(dnsimpleRecords), nil)
 	testApi.On("UpdateRecord", context.Background(), "123", zone.Name, dnsimpleRecords[0].ID, dnsimple.ZoneRecordAttributes{Content: record.Info()}).Return(&dnsimple.ZoneRecordResponse{}, nil)
 

@@ -70,7 +70,7 @@ func (p dnsimpleProvider) ReadZones(ctx context.Context) ([]*registry.Zone, erro
 		listOptions := &dnsimple.ZoneRecordListOptions{}
 		for {
 			listOptions.ListOptions.Page = &page
-			dnsRecords, err := p.client.ListRecords(context.Background(), p.accountID, zone, listOptions)
+			dnsRecords, err := p.client.ListRecords(ctx, p.accountID, zone, listOptions)
 			if err != nil {
 				return nil, err
 			}
@@ -123,6 +123,12 @@ func (p dnsimpleProvider) UpdateRegistryRecord(ctx context.Context, zone *regist
 
 func (p dnsimpleProvider) getRecordID(ctx context.Context, zone *registry.Zone, recordName string) (recordID int64, err error) {
 	page := 1
+	if recordName == zone.Name {
+		recordName = "" // Apex records have an empty name
+	} else {
+		recordName = strings.TrimSuffix(recordName, fmt.Sprintf(".%s", zone.Name))
+	}
+
 	listOptions := &dnsimple.ZoneRecordListOptions{Name: &recordName}
 	for {
 		listOptions.Page = &page

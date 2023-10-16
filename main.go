@@ -20,8 +20,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go handleSigterm(cancel)
 
-	registryRecords, dnsProvider := getZones(ctx, cfg)
 	sourceEndpoints := getSourceEndpoints(ctx, cfg)
+	registryRecords, dnsProvider := getZones(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
 	configureNewOwner(ctx, cfg, selector, sourceEndpoints, registryRecords)
 }
