@@ -43,21 +43,27 @@ func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Int
 	virtualServiceInformer := istioInformerFactory.Networking().V1alpha3().VirtualServices()
 
 	// Add default resource event handlers to properly initialize informer.
-	serviceInformer.Informer().AddEventHandler(
+	_, err := serviceInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				log.Debug("service added")
 			},
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	virtualServiceInformer.Informer().AddEventHandler(
+	_, err = virtualServiceInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				log.Debug("virtual service added")
 			},
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	informerFactory.Start(ctx.Done())
 	istioInformerFactory.Start(ctx.Done())
@@ -116,7 +122,7 @@ func (sc *virtualServiceSource) Endpoints(ctx context.Context) ([]*registry.Endp
 }
 
 // AddEventHandler adds an event handler that should be triggered if the watched Istio VirtualService changes.
-func (sc *virtualServiceSource) AddEventHandler(ctx context.Context, handler func()) {
+func (sc *virtualServiceSource) AddEventHandler(_ context.Context, handler func()) {
 	log.Debug("Adding event handler for Istio VirtualService")
 
 	sc.virtualserviceInformer.Informer().AddEventHandler(eventHandlerFunc(handler))

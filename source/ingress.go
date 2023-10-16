@@ -51,7 +51,7 @@ func NewIngressSource(ctx context.Context, kubeClient kubernetes.Interface, name
 
 // Endpoints returns endpoint objects for each host-target combination that should be processed.
 // Retrieves all ingress resources on all namespaces
-func (sc *ingressSource) Endpoints(ctx context.Context) ([]*registry.Endpoint, error) {
+func (sc *ingressSource) Endpoints(_ context.Context) ([]*registry.Endpoint, error) {
 	ingresses, err := sc.ingressInformer.Lister().Ingresses(sc.namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func endpointsFromIngress(ing *networkv1.Ingress) []*registry.Endpoint {
 	return endpoints
 }
 
-func (sc *ingressSource) AddEventHandler(ctx context.Context, handler func()) {
+func (sc *ingressSource) AddEventHandler(_ context.Context, handler func()) {
 	log.Debug("Adding event handler for ingress")
 
 	// Right now there is no way to remove event handler from informer, see:

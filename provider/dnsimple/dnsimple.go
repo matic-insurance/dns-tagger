@@ -29,7 +29,7 @@ type dnsimpleZoneServiceApi interface {
 	UpdateRecord(ctx context.Context, accountID string, zoneID string, recordID int64, recordAttributes dnsimple.ZoneRecordAttributes) (*dnsimple.ZoneRecordResponse, error)
 }
 
-func (p dnsimpleProvider) Whoami(ctx context.Context) string {
+func (p dnsimpleProvider) Whoami(_ context.Context) string {
 	return fmt.Sprintf("DNSimple for Account %s", p.accountID)
 }
 

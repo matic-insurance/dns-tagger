@@ -35,9 +35,9 @@ func splitHostnameAnnotation(annotation string) []string {
 
 type eventHandlerFunc func()
 
-func (fn eventHandlerFunc) OnAdd(obj interface{}, isInInitialList bool) { fn() }
-func (fn eventHandlerFunc) OnUpdate(oldObj, newObj interface{})         { fn() }
-func (fn eventHandlerFunc) OnDelete(obj interface{})                    { fn() }
+func (fn eventHandlerFunc) OnAdd(_ interface{}, _ bool) { fn() }
+func (fn eventHandlerFunc) OnUpdate(_, _ interface{})   { fn() }
+func (fn eventHandlerFunc) OnDelete(_ interface{})      { fn() }
 
 type informerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool

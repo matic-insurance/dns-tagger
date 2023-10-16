@@ -24,7 +24,7 @@ type mockProvider struct {
 	mock.Mock
 }
 
-func (p *mockProvider) ReadZones(ctx context.Context) ([]*registry.Zone, error) {
+func (p *mockProvider) ReadZones(_ context.Context) ([]*registry.Zone, error) {
 	panic("implement me")
 }
 
@@ -33,7 +33,7 @@ func (p *mockProvider) UpdateRegistryRecord(ctx context.Context, zone *registry.
 	return args.Int(0), args.Error(1)
 }
 
-func (p *mockProvider) Whoami(ctx context.Context) string {
+func (p *mockProvider) Whoami(_ context.Context) string {
 	panic("implement me")
 }
 
