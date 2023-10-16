@@ -3,7 +3,7 @@ package pkg
 import (
 	"context"
 	"errors"
-	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/matic-insurance/dns-tager/registry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"

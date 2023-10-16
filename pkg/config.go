@@ -83,7 +83,7 @@ func allLogLevelsAsStrings() []string {
 
 // ParseFlags adds and parses flags from command line
 func (cfg *Config) ParseFlags(args []string) error {
-	app := kingpin.New("external-dns-dialer", "ExternalDNS Dialer Allows to change External DNS Records owner between clusters.\n\nNote that all flags may be replaced with env vars - `--flag` -> `EXTERNAL_DNS_DIALER_FLAG=1` or `--flag value` -> `EXTERNAL_DNS_DIALER_FLAG=value`")
+	app := kingpin.New("dns-tagger", "DNS Tagger Allows to change External DNS Records owner between clusters.\n\nNote that all flags may be replaced with env vars - `--flag` -> `EXTERNAL_DNS_DIALER_FLAG=1` or `--flag value` -> `EXTERNAL_DNS_DIALER_FLAG=value`")
 	app.Version(Version)
 	app.DefaultEnvars()
 

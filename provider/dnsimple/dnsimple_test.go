@@ -3,8 +3,8 @@ package dnsimple
 import (
 	"context"
 	"github.com/dnsimple/dnsimple-go/dnsimple"
-	"github.com/matic-insurance/external-dns-dialer/pkg"
-	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/matic-insurance/dns-tager/pkg"
+	"github.com/matic-insurance/dns-tager/registry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"

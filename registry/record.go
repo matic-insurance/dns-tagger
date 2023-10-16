@@ -21,15 +21,17 @@ func (r Record) Info() string {
 }
 
 func (r Record) IsManaging(host *Host) bool {
-	// Exact match of registry with prefix
-	if r.Name == host.Name || strings.HasSuffix(r.Name, host.Name) {
-		return true
-	}
-	// registry with suffix
 	recordParts := strings.SplitN(r.Name, ".", 2)
 	hostParts := strings.SplitN(host.Name, ".", 2)
-	if strings.HasPrefix(recordParts[0], hostParts[0]) && recordParts[1] == hostParts[1] {
-		return true
+	recordDomain := recordParts[0]
+	recordBase := recordParts[1]
+	hostDomain := hostParts[0]
+	hostBase := hostParts[1]
+
+	// top level domain match for both records
+	if hostBase == recordBase {
+		//same domain, txt prefix, txt suffix
+		return recordDomain == hostDomain || strings.HasSuffix(recordDomain, hostDomain) || strings.HasPrefix(recordDomain, hostDomain)
 	}
 	return false
 }

@@ -65,6 +65,12 @@ func TestRecord_IsManaging(t *testing.T) {
 			host:   &Host{Name: "webserver2.dummy.host"},
 			want:   false,
 		},
+		{
+			name:   "Not managing deeper level",
+			record: Record{Name: "4thlevel.prefix-webserver.dummy.host"},
+			host:   &Host{Name: "webserver.dummy.host"},
+			want:   false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

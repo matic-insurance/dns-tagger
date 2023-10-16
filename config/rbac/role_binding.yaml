@@ -5,8 +5,8 @@ metadata:
     app.kubernetes.io/name: clusterrolebinding
     app.kubernetes.io/instance: manager-rolebinding
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: external-dns-dialer
-    app.kubernetes.io/part-of: external-dns-dialer
+    app.kubernetes.io/created-by: dns-tagger
+    app.kubernetes.io/part-of: dns-tagger
     app.kubernetes.io/managed-by: kustomize
   name: manager-rolebinding
 roleRef:

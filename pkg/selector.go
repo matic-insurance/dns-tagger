@@ -2,8 +2,8 @@ package pkg
 
 import (
 	"context"
-	"github.com/matic-insurance/external-dns-dialer/provider"
-	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/matic-insurance/dns-tager/provider"
+	"github.com/matic-insurance/dns-tager/registry"
 	log "github.com/sirupsen/logrus"
 )
 

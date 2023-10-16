@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/matic-insurance/external-dns-dialer/pkg"
-	"github.com/matic-insurance/external-dns-dialer/provider"
-	"github.com/matic-insurance/external-dns-dialer/provider/dnsimple"
-	"github.com/matic-insurance/external-dns-dialer/registry"
-	"github.com/matic-insurance/external-dns-dialer/source"
+	"github.com/matic-insurance/dns-tager/pkg"
+	"github.com/matic-insurance/dns-tager/provider"
+	"github.com/matic-insurance/dns-tager/provider/dnsimple"
+	"github.com/matic-insurance/dns-tager/registry"
+	"github.com/matic-insurance/dns-tager/source"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"

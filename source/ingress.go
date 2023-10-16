@@ -19,7 +19,7 @@ package source
 import (
 	"context"
 	"fmt"
-	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/matic-insurance/dns-tager/registry"
 	log "github.com/sirupsen/logrus"
 	networkv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/labels"

@@ -8,6 +8,6 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: external-dns-dialer
-repo: github.com/matic-insurance/external-dns-dialer
+projectName: dns-tagger
+repo: github.com/matic-insurance/dns-tagger
 version: "3"

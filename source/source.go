@@ -3,7 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
-	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/matic-insurance/dns-tager/registry"
 	"reflect"
 	"strings"
 	"time"

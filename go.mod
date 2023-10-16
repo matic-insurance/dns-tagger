@@ -1,4 +1,4 @@
-module github.com/matic-insurance/external-dns-dialer
+module github.com/matic-insurance/dns-tager
 
 go 1.20
 

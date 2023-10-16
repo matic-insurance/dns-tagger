@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"github.com/matic-insurance/external-dns-dialer/registry"
+	"github.com/matic-insurance/dns-tager/registry"
 )
 
 type Provider interface {
