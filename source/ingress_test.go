@@ -18,6 +18,7 @@ func testIngressEndpoints(t *testing.T) {
 	namespace := "testing"
 	tests := []struct {
 		name              string
+		targetNamespace   string
 		ingressItems      []fakeIngress
 		expectedEndpoints []*registry.Endpoint
 	}{
@@ -107,7 +108,7 @@ func testIngressEndpoints(t *testing.T) {
 			source, _ := NewIngressSource(
 				context.TODO(),
 				fakeClient,
-				namespace,
+				tt.targetNamespace,
 			)
 
 			// Compare retrieved ingresses with expected ones

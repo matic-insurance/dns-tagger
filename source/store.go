@@ -107,32 +107,32 @@ func BuildWithConfig(ctx context.Context, source string, p ClientGenerator, cfg 
 			return nil, err
 		}
 		return NewIngressSource(ctx, client, cfg.Namespace)
-		//case "pod":
-		//	client, err := p.KubeClient()
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	return NewPodSource(ctx, client, cfg.Namespace, cfg.Compatibility)
-		//case "istio-gateway":
-		//	kubernetesClient, err := p.KubeClient()
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	istioClient, err := p.IstioClient()
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	return NewIstioGatewaySource(ctx, kubernetesClient, istioClient, cfg.Namespace, cfg.AnnotationFilter, cfg.FQDNTemplate, cfg.CombineFQDNAndAnnotation, cfg.IgnoreHostnameAnnotation)
-		//case "istio-virtualservice":
-		//	kubernetesClient, err := p.KubeClient()
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	istioClient, err := p.IstioClient()
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	return NewIstioVirtualServiceSource(ctx, kubernetesClient, istioClient, cfg.Namespace, cfg.AnnotationFilter, cfg.FQDNTemplate, cfg.CombineFQDNAndAnnotation, cfg.IgnoreHostnameAnnotation)
+	//case "pod":
+	//	client, err := p.KubeClient()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return NewPodSource(ctx, client, cfg.Namespace, cfg.Compatibility)
+	//case "istio-gateway":
+	//	kubernetesClient, err := p.KubeClient()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	istioClient, err := p.IstioClient()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return NewIstioGatewaySource(ctx, kubernetesClient, istioClient, cfg.Namespace, cfg.AnnotationFilter, cfg.FQDNTemplate, cfg.CombineFQDNAndAnnotation, cfg.IgnoreHostnameAnnotation)
+	case "istio-virtualservice":
+		kubernetesClient, err := p.KubeClient()
+		if err != nil {
+			return nil, err
+		}
+		istioClient, err := p.IstioClient()
+		if err != nil {
+			return nil, err
+		}
+		return NewIstioVirtualServiceSource(ctx, kubernetesClient, istioClient, cfg.Namespace)
 		//case "fake":
 		//	return NewFakeSource(cfg.FQDNTemplate)
 	}

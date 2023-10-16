@@ -87,7 +87,7 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Flag("request-timeout", "Request timeout when calling Kubernetes APIs. 0s means no timeout").Default(defaultConfig.RequestTimeout.String()).DurationVar(&cfg.RequestTimeout)
 
 	// Flags related to processing source
-	app.Flag("source", "The resource types that are queried for endpoints; specify multiple times for multiple sources (required, options: ingress").Required().PlaceHolder("source").EnumsVar(&cfg.Sources, "ingress")
+	app.Flag("source", "The resource types that are queried for endpoints; specify multiple times for multiple sources (required, options: ingress, istio-virtualservice").Required().PlaceHolder("source").EnumsVar(&cfg.Sources, "ingress", "istio-virtualservice")
 	app.Flag("namespace", "Limit resources queried for endpoints to a specific namespace (default: all namespaces)").Default(defaultConfig.Namespace).StringVar(&cfg.Namespace)
 
 	// Flags related to operations

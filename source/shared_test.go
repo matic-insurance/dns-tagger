@@ -22,6 +22,8 @@ import (
 	"testing"
 )
 
+const namespace = "testing"
+
 func sortEndpoints(endpoints []*registry.Endpoint) {
 	sort.Slice(endpoints, func(i, k int) bool {
 		// Sort by DNSName, RecordType, and Targets
