@@ -1,19 +1,3 @@
-/*
-Copyright 2017 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package source
 
 import (
@@ -27,19 +11,6 @@ import (
 	netinformers "k8s.io/client-go/informers/networking/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-)
-
-const (
-	// ALBDualstackAnnotationKey is the annotation used for determining if an ALB ingress is dualstack
-	ALBDualstackAnnotationKey = "alb.ingress.kubernetes.io/ip-address-type"
-	// ALBDualstackAnnotationValue is the value of the ALB dualstack annotation that indicates it is dualstack
-	ALBDualstackAnnotationValue = "dualstack"
-
-	// Possible values for the ingress-hostname-source annotation
-	IngressHostnameSourceAnnotationOnlyValue   = "annotation-only"
-	IngressHostnameSourceDefinedHostsOnlyValue = "defined-hosts-only"
-
-	IngressClassAnnotationKey = "kubernetes.io/ingress.class"
 )
 
 type ingressSource struct {
@@ -102,10 +73,10 @@ func (sc *ingressSource) Endpoints(ctx context.Context) ([]*registry.Endpoint, e
 		if len(ingEndpoints) == 0 {
 			log.Debugf("No endpoints could be generated from ingress %s/%s", ing.Namespace, ing.Name)
 			continue
+		} else {
+			log.Debugf("Endpoints generated from ingress: %s/%s: %v", ing.Namespace, ing.Name, ingEndpoints)
+			endpoints = append(endpoints, ingEndpoints...)
 		}
-
-		log.Debugf("Endpoints generated from ingress: %s/%s: %v", ing.Namespace, ing.Name, ingEndpoints)
-		endpoints = append(endpoints, ingEndpoints...)
 	}
 
 	return endpoints, nil
@@ -115,21 +86,19 @@ func (sc *ingressSource) Endpoints(ctx context.Context) ([]*registry.Endpoint, e
 func endpointsFromIngress(ing *networkv1.Ingress) []*registry.Endpoint {
 	resource := fmt.Sprintf("ingress/%s/%s", ing.Namespace, ing.Name)
 
-	targets := targetsFromIngressStatus(ing.Status)
-
 	var definedHostsEndpoints []*registry.Endpoint
 	// Gather endpoints defined on hosts sections of the ingress
 	for _, rule := range ing.Spec.Rules {
 		if rule.Host == "" {
 			continue
 		}
-		definedHostsEndpoints = append(definedHostsEndpoints, registry.NewEndpoint(rule.Host, resource, targets))
+		definedHostsEndpoints = append(definedHostsEndpoints, registry.NewEndpoint(rule.Host, resource))
 	}
 
 	// Gather endpoints defined on annotations in the ingress
 	var annotationEndpoints []*registry.Endpoint
 	for _, hostname := range getHostnamesFromAnnotations(ing.Annotations) {
-		annotationEndpoints = append(annotationEndpoints, registry.NewEndpoint(hostname, resource, targets))
+		annotationEndpoints = append(annotationEndpoints, registry.NewEndpoint(hostname, resource))
 	}
 
 	// Include endpoints according to the hostname source annotation in our final list
@@ -138,21 +107,6 @@ func endpointsFromIngress(ing *networkv1.Ingress) []*registry.Endpoint {
 	endpoints = append(endpoints, annotationEndpoints...)
 
 	return endpoints
-}
-
-func targetsFromIngressStatus(status networkv1.IngressStatus) []string {
-	var targets []string
-
-	for _, lb := range status.LoadBalancer.Ingress {
-		if lb.IP != "" {
-			targets = append(targets, lb.IP)
-		}
-		if lb.Hostname != "" {
-			targets = append(targets, lb.Hostname)
-		}
-	}
-
-	return targets
 }
 
 func (sc *ingressSource) AddEventHandler(ctx context.Context, handler func()) {
