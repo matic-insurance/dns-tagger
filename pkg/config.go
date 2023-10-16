@@ -24,6 +24,7 @@ type Config struct {
 	Apply            bool
 	CurrentOwnerID   string
 	PreviousOwnerIDs []string
+	DNSZones         []string
 }
 
 var defaultConfig = &Config{
@@ -36,7 +37,8 @@ var defaultConfig = &Config{
 	LogFormat:      "text",
 	LogLevel:       logrus.InfoLevel.String(),
 
-	Apply: false,
+	Apply:    false,
+	DNSZones: []string{},
 }
 
 func NewConfig() *Config {
@@ -92,6 +94,7 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Flag("apply", "When enabled, executes dns changes (default: disabled)").BoolVar(&cfg.Apply)
 	app.Flag("current-owner-id", "What owner id to set when records changing ownership").Required().StringVar(&cfg.CurrentOwnerID)
 	app.Flag("previous-owner-id", "What previous owner ids are allowed for migration").Required().PlaceHolder("previous-owner-id").StringsVar(&cfg.PreviousOwnerIDs)
+	app.Flag("dns-zone", "What dns zone should be considered").Required().PlaceHolder("dns-zone").Default(cfg.DNSZones...).StringsVar(&cfg.DNSZones)
 
 	// Miscellaneous flags
 	app.Flag("log-format", "The format in which log messages are printed (default: text, options: text, json)").Default(defaultConfig.LogFormat).EnumVar(&cfg.LogFormat, "text", "json")

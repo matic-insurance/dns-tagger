@@ -23,15 +23,19 @@ func main() {
 	registryRecords, dnsProvider := getZones(ctx, cfg)
 	sourceEndpoints := getSourceEndpoints(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
-	configureNewOwner(ctx, selector, sourceEndpoints, registryRecords)
+	configureNewOwner(ctx, cfg, selector, sourceEndpoints, registryRecords)
 }
 
-func configureNewOwner(ctx context.Context, selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
+func configureNewOwner(ctx context.Context, cfg *pkg.Config, selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
 	updatedRecords, err := selector.ClaimEndpointsOwnership(ctx, endpoints, zones)
 	if err != nil {
 		log.Fatalf("Owner updates aborted: %s", err)
 	}
-	log.Infof("Finished updating registry records. Updated '%d' records", updatedRecords)
+	if cfg.Apply {
+		log.Infof("Finished updating registry records. Updated '%d' records", updatedRecords)
+	} else {
+		log.Infof("Finished updating registry records. Updated '%d' records in Dry Run mode", updatedRecords)
+	}
 }
 
 func initConfig() *pkg.Config {
@@ -98,7 +102,7 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 }
 
 func getZones(ctx context.Context, cfg *pkg.Config) ([]*registry.Zone, provider.Provider) {
-	dnsProvider, err := dnsimple.NewDnsimpleProvider(cfg, []string{"matic.link"})
+	dnsProvider, err := dnsimple.NewDnsimpleProvider(cfg, cfg.DNSZones)
 	if err != nil {
 		log.Fatal(err)
 	}
