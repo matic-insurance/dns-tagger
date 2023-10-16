@@ -68,16 +68,12 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 		KubeConfig:     cfg.KubeConfig,
 		APIServerURL:   cfg.APIServerURL,
 		RequestTimeout: cfg.RequestTimeout,
-		UpdateEvents:   cfg.UpdateEvents,
 	}
 	sources, err := source.ByNames(ctx, &source.SingletonClientGenerator{
 		KubeConfig:   cfg.KubeConfig,
 		APIServerURL: cfg.APIServerURL,
 		// If update events are enabled, disable timeout.
 		RequestTimeout: func() time.Duration {
-			if cfg.UpdateEvents {
-				return 0
-			}
 			return cfg.RequestTimeout
 		}(),
 	}, cfg.Sources, sourceCfg)

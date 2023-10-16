@@ -105,10 +105,7 @@ func (p dnsimpleProvider) ReadZones(ctx context.Context) ([]*registry.Zone, erro
 }
 
 func (p dnsimpleProvider) UpdateRegistryRecord(ctx context.Context, zone *registry.Zone, record *registry.Record) (int, error) {
-	if p.cfg.DryRun {
-		log.Infof("Dry Run: Updated %s registry value to %s", record.Name, record.Info())
-		return 1, nil
-	} else {
+	if p.cfg.Apply {
 		recordID, err := p.getRecordID(ctx, zone, record.Name)
 		if err != nil {
 			return 0, err
@@ -117,6 +114,9 @@ func (p dnsimpleProvider) UpdateRegistryRecord(ctx context.Context, zone *regist
 		if err != nil {
 			return 0, err
 		}
+		return 1, nil
+	} else {
+		log.Infof("Dry Run: Updated %s registry value to %s", record.Name, record.Info())
 		return 1, nil
 	}
 }

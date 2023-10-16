@@ -18,16 +18,12 @@ type Config struct {
 	Sources        []string
 	Namespace      string
 	Provider       string
-	UpdateEvents   bool
 	LogFormat      string
 	LogLevel       string
-	MetricsAddress string
 
-	Once                bool
-	DryRun              bool
-	CurrentOwnerID      string
-	PreviousOwnerIDs    []string
-	PreviousTxtPrefixes []string
+	Apply            bool
+	CurrentOwnerID   string
+	PreviousOwnerIDs []string
 }
 
 var defaultConfig = &Config{
@@ -37,14 +33,10 @@ var defaultConfig = &Config{
 	Sources:        nil,
 	Namespace:      "",
 	Provider:       "",
-	UpdateEvents:   false,
 	LogFormat:      "text",
 	LogLevel:       logrus.InfoLevel.String(),
-	MetricsAddress: ":7979",
 
-	Once:                true,
-	DryRun:              true,
-	PreviousTxtPrefixes: []string{},
+	Apply: false,
 }
 
 func NewConfig() *Config {
@@ -97,18 +89,13 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Flag("namespace", "Limit resources queried for endpoints to a specific namespace (default: all namespaces)").Default(defaultConfig.Namespace).StringVar(&cfg.Namespace)
 
 	// Flags related to operations
-	app.Flag("once", "When enabled, exits the synchronization loop after the first iteration (default: disabled)").BoolVar(&cfg.Once)
-	app.Flag("dry-run", "When enabled, prints DNS record changes rather than actually performing them (default: disabled)").BoolVar(&cfg.DryRun)
+	app.Flag("apply", "When enabled, executes dns changes (default: disabled)").BoolVar(&cfg.Apply)
 	app.Flag("current-owner-id", "What owner id to set when records changing ownership").Required().StringVar(&cfg.CurrentOwnerID)
 	app.Flag("previous-owner-id", "What previous owner ids are allowed for migration").Required().PlaceHolder("previous-owner-id").StringsVar(&cfg.PreviousOwnerIDs)
-	//app.Flag("previous-txt-prefix", "What previous txt prefixes are allowed for migration").Required().PlaceHolder("previous-txt-prefix").StringsVar(&cfg.PreviousTxtPrefixes)
-
-	app.Flag("events", "When enabled, in addition to running every interval, the reconciliation loop will get triggered when supported sources change (default: disabled)").BoolVar(&cfg.UpdateEvents)
 
 	// Miscellaneous flags
 	app.Flag("log-format", "The format in which log messages are printed (default: text, options: text, json)").Default(defaultConfig.LogFormat).EnumVar(&cfg.LogFormat, "text", "json")
 	app.Flag("log-level", "Set the level of logging. (default: info, options: panic, debug, info, warning, error, fatal)").Default(defaultConfig.LogLevel).EnumVar(&cfg.LogLevel, allLogLevelsAsStrings()...)
-	app.Flag("metrics-address", "Specify where to serve the metrics and health check endpoint (default: :7979)").Default(defaultConfig.MetricsAddress).StringVar(&cfg.MetricsAddress)
 
 	_, err := app.Parse(args)
 	if err != nil {

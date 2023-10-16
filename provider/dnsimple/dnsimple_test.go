@@ -22,14 +22,14 @@ type mockDnsimpleZoneServiceInterface struct {
 
 func TestDnsimpleProvider(t *testing.T) {
 	testApi = &mockDnsimpleZoneServiceInterface{}
-	testProvider = dnsimpleProvider{client: testApi, accountID: "123", cfg: &pkg.Config{}}
+	testProvider = dnsimpleProvider{client: testApi, accountID: "123", cfg: &pkg.Config{Apply: true}}
 
 	t.Run("UpdateRegistryRecord_Success", testDnsimpleProviderUpdateRegistryRecord_Success)
-	t.Run("UpdateRegistryRecord_DryRun", testDnsimpleProviderUpdateRegistryRecord_DryRun)
+	t.Run("UpdateRegistryRecord_NoApply", testDnsimpleProviderUpdateRegistryRecord_NoApply)
 }
 
-func testDnsimpleProviderUpdateRegistryRecord_DryRun(t *testing.T) {
-	testProvider.cfg.DryRun = true
+func testDnsimpleProviderUpdateRegistryRecord_NoApply(t *testing.T) {
+	testProvider.cfg.Apply = false
 	record := &registry.Record{Name: "webserver.dummy.host", Owner: "cluster-1", Resource: "ingress/test/webserver"}
 	updates, err := testProvider.UpdateRegistryRecord(context.Background(), zone, record)
 
