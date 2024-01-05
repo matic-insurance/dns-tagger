@@ -21,15 +21,31 @@ func main() {
 	go handleSigterm(cancel)
 
 	sourceEndpoints := getSourceEndpoints(ctx, cfg)
-	registryRecords, dnsProvider := getZones(ctx, cfg)
+	// mbb registryRecords, dnsProvider := getZones(ctx, cfg)
+	zones, dnsProvider := getZones(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
-	configureNewOwner(ctx, cfg, selector, sourceEndpoints, registryRecords)
+	//log.Infof("before configureNewOwner")
+	//configureNewOwner(ctx, cfg, selector, sourceEndpoints, zones)
+	log.Infof("---------------- before configureNewResource")
+	configureNewResource(ctx, cfg, selector, sourceEndpoints, zones)
 }
 
 func configureNewOwner(ctx context.Context, cfg *pkg.Config, selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
 	updatedRecords, err := selector.ClaimEndpointsOwnership(ctx, endpoints, zones)
 	if err != nil {
 		log.Fatalf("Owner updates aborted: %s", err)
+	}
+	if cfg.Apply {
+		log.Infof("Finished updating registry records. Updated '%d' records", updatedRecords)
+	} else {
+		log.Infof("Finished updating registry records. Updated '%d' records in Dry Run mode", updatedRecords)
+	}
+}
+
+func configureNewResource(ctx context.Context, cfg *pkg.Config, selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
+	updatedRecords, err := selector.ClaimEndpointsResource(ctx, endpoints, zones)
+	if err != nil {
+		log.Fatalf("Resource updates aborted: %s", err)
 	}
 	if cfg.Apply {
 		log.Infof("Finished updating registry records. Updated '%d' records", updatedRecords)
@@ -112,11 +128,12 @@ func getZones(ctx context.Context, cfg *pkg.Config) ([]*registry.Zone, provider.
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	allHosts := make([]*registry.Host, 0)
-	for _, zone := range zones {
-		allHosts = append(allHosts, zone.Hosts...)
-	}
+	log.Debugf("ZONES: '%s'", zones)
+	// allHosts := make([]*registry.Host, 0)
+	// for _, zone := range zones {
+	// 	allHosts = append(allHosts, zone.Hosts...)
+	// }
+	// log.Debugf("allHosts: '%s'", allHosts)
 
 	return zones, dnsProvider
 }

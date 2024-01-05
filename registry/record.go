@@ -40,6 +40,10 @@ func (r Record) ClaimOwnership(ownerId string, resource string) *Record {
 	return &Record{Name: r.Name, Owner: ownerId, Resource: resource}
 }
 
+func (r Record) ClaimResource(ownerId string, resource string) *Record {
+	return &Record{Name: r.Name, Owner: ownerId, Resource: resource}
+}
+
 func (r Record) NewResource(resource string) *Record {
 	return &Record{Name: r.Name, Owner: r.Owner, Resource: resource}
 }
