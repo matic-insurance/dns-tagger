@@ -12,6 +12,8 @@ import (
 var Version = "unknown"
 
 type Config struct {
+	Mode           string
+
 	APIServerURL   string
 	KubeConfig     string
 	RequestTimeout time.Duration
@@ -25,9 +27,11 @@ type Config struct {
 	CurrentOwnerID   string
 	PreviousOwnerIDs []string
 	DNSZones         []string
+
 }
 
 var defaultConfig = &Config{
+	Mode:           "owner",
 	APIServerURL:   "",
 	KubeConfig:     "",
 	RequestTimeout: time.Second * 30,
@@ -39,6 +43,7 @@ var defaultConfig = &Config{
 
 	Apply:    false,
 	DNSZones: []string{},
+
 }
 
 func NewConfig() *Config {
@@ -80,6 +85,9 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app := kingpin.New("dns-tagger", "DNS Tagger Allows to change External DNS Records owner between clusters.\n\nNote that all flags may be replaced with env vars - `--flag` -> `EXTERNAL_DNS_DIALER_FLAG=1` or `--flag value` -> `EXTERNAL_DNS_DIALER_FLAG=value`")
 	app.Version(Version)
 	app.DefaultEnvars()
+
+	// dns-tagger mode
+	app.Flag("mode", "Determines the operation of the dns-tagger (default: owner, options: owner, resource)").Default(defaultConfig.Mode).EnumVar(&cfg.Mode, "owner", "resource")
 
 	// Flags related to Kubernetes
 	app.Flag("server", "The Kubernetes API server to connect to (default: auto-detect)").Default(defaultConfig.APIServerURL).StringVar(&cfg.APIServerURL)

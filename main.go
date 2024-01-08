@@ -16,6 +16,7 @@ import (
 
 func main() {
 	cfg := initConfig()
+	log.Infof("Running in '%s' mode", cfg.Mode)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go handleSigterm(cancel)
@@ -24,10 +25,12 @@ func main() {
 	// mbb registryRecords, dnsProvider := getZones(ctx, cfg)
 	zones, dnsProvider := getZones(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
-	//log.Infof("before configureNewOwner")
-	//configureNewOwner(ctx, cfg, selector, sourceEndpoints, zones)
-	log.Infof("---------------- before configureNewResource")
-	configureNewResource(ctx, cfg, selector, sourceEndpoints, zones)
+
+	if cfg.Mode == "owner" {
+		configureNewOwner(ctx, cfg, selector, sourceEndpoints, zones)
+	} else {
+		configureNewResource(ctx, cfg, selector, sourceEndpoints, zones)
+	}
 }
 
 func configureNewOwner(ctx context.Context, cfg *pkg.Config, selector *pkg.Selector, endpoints []*registry.Endpoint, zones []*registry.Zone) {
@@ -111,7 +114,7 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 		if err != nil {
 			log.Fatal(err)
 		}
-
+		log.Infof("EEEE: %+v", sourceEndpoints)
 		endpoints = append(endpoints, sourceEndpoints...)
 	}
 	return endpoints

@@ -90,38 +90,27 @@ func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry
 	hostDiscovered := false
 	for _, host := range zone.Hosts {
 		if endpoint.Host == host.Name {
-			log.Debugf("RRR Host record found for '%s'", endpoint)
+			log.Debugf("Host record found for '%s'", endpoint)
 			hostDiscovered = true
 			if host.IsManaged() {
 				for _, registryRecord := range host.RegistryRecords {
-					log.Debugf("host.Name: '%s'", host.Name)
-					log.Debugf("Resource DNSimple: '%s'", registryRecord.Resource)
-					log.Debugf("Resource K8S: '%s'", endpoint.Resource)
 
-					if ( registryRecord.Resource != endpoint.Resource ) {
-						log.Debug("!!!!!!!!!!!!!!!!! UPDATE !!!!!!!!!!!!!!!!!")
-						updatedRecord := registryRecord.ClaimResource(s.cfg.CurrentOwnerID, endpoint.Resource)
-						//updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
+					log.Debugf("Resource value on DNSimple: '%s'", registryRecord.Resource)
+					log.Debugf("Resource value on K8S: '%s'", endpoint.Resource)
+
+					if ( registryRecord.Resource == endpoint.Resource ) {
+						log.Debugf("Resource info up to date for '%s'", registryRecord)
+						continue
 					}
 
+					log.Infof("Updating Resource info for '%s' to '%s'", registryRecord, endpoint.Resource)
+					updatedRecord := registryRecord.ClaimResource(s.cfg.CurrentOwnerID, endpoint.Resource)
+					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
 
-					//log.Debugf("Resource: '%s'", s.Resource)
-		// 			if s.isAlreadyOwned(registryRecord.Owner) {
-		// 				log.Debugf("Resource info up to date for '%s'", registryRecord)
-		// 				continue
-		// 			}
-		// 			// if !s.isAllowedOwner(registryRecord.Owner) {
-		// 			// 	log.Warnf("Resource not updated. Unsupported previous owner. '%s'", registryRecord.Owner)
-		// 			// 	continue
-		// 			// }
-
-		// 			log.Infof("Updating Resource info for '%s' to '%s'", registryRecord, s.cfg.CurrentOwnerID)
-		// 			updatedRecord := registryRecord.ClaimOwnership(s.cfg.CurrentOwnerID, endpoint.Resource)
-		// 			//updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
-		// 			updatedRecords += updates
-		// 			if err != nil {
-		// 				return updatedRecords, err
-		// 			}
+					updatedRecords += updates
+					if err != nil {
+						return updatedRecords, err
+					}
 				}
 			} else {
 				log.Warnf("Missing registry records for '%s'", endpoint)
