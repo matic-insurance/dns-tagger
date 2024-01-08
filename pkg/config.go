@@ -27,7 +27,6 @@ type Config struct {
 	CurrentOwnerID   string
 	PreviousOwnerIDs []string
 	DNSZones         []string
-
 }
 
 var defaultConfig = &Config{

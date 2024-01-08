@@ -114,7 +114,7 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("EEEE: %+v", sourceEndpoints)
+
 		endpoints = append(endpoints, sourceEndpoints...)
 	}
 	return endpoints
@@ -131,12 +131,6 @@ func getZones(ctx context.Context, cfg *pkg.Config) ([]*registry.Zone, provider.
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Debugf("ZONES: '%s'", zones)
-	// allHosts := make([]*registry.Host, 0)
-	// for _, zone := range zones {
-	// 	allHosts = append(allHosts, zone.Hosts...)
-	// }
-	// log.Debugf("allHosts: '%s'", allHosts)
 
 	return zones, dnsProvider
 }
