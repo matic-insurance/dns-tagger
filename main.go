@@ -22,7 +22,6 @@ func main() {
 	go handleSigterm(cancel)
 
 	sourceEndpoints := getSourceEndpoints(ctx, cfg)
-	// mbb registryRecords, dnsProvider := getZones(ctx, cfg)
 	zones, dnsProvider := getZones(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
 
