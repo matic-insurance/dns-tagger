@@ -68,7 +68,7 @@ func (s *Selector) claimEndpoint(ctx context.Context, endpoint *registry.Endpoin
 					}
 
 					log.Infof("Updating owner info for '%s' to '%s'", registryRecord, s.cfg.CurrentOwnerID)
-					updatedRecord := registryRecord.ClaimOwnership(s.cfg.CurrentOwnerID, endpoint.Resource)
+					updatedRecord := registryRecord.ClaimOwnership(s.cfg.CurrentOwnerID)
 					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
 					updatedRecords += updates
 					if err != nil {
@@ -104,7 +104,7 @@ func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry
 					}
 
 					log.Infof("Updating Resource info for '%s' to '%s'", registryRecord, endpoint.Resource)
-					updatedRecord := registryRecord.ClaimResource(s.cfg.CurrentOwnerID, endpoint.Resource)
+					updatedRecord := registryRecord.ClaimResource(endpoint.Resource)
 					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
 
 					updatedRecords += updates
