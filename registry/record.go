@@ -36,11 +36,11 @@ func (r Record) IsManaging(host *Host) bool {
 	return false
 }
 
-func (r Record) ClaimOwnership(ownerId string, resource string) *Record {
-	return &Record{Name: r.Name, Owner: ownerId, Resource: resource}
+func (r Record) ClaimOwnership(ownerId string) *Record {
+	return &Record{Name: r.Name, Owner: ownerId, Resource: r.Resource}
 }
 
-func (r Record) NewResource(resource string) *Record {
+func (r Record) ClaimResource(resource string) *Record {
 	return &Record{Name: r.Name, Owner: r.Owner, Resource: resource}
 }
 
