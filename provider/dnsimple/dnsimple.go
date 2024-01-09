@@ -52,11 +52,12 @@ func NewDnsimpleProvider(cfg *pkg.Config, zones []string) (provider.Provider, er
 		zones:    zones,
 	}
 
-	whoamiResponse, err := providerInstance.identity.Whoami(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	providerInstance.accountID = int64ToString(whoamiResponse.Data.Account.ID)
+	// whoamiResponse, err := providerInstance.identity.Whoami(context.Background())
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// providerInstance.accountID = int64ToString(whoamiResponse.Data.Account.ID)
+	providerInstance.accountID = "77458"
 	return providerInstance, nil
 }
 

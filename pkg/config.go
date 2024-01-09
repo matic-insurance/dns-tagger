@@ -12,6 +12,7 @@ import (
 var Version = "unknown"
 
 type Config struct {
+	Mode           string
 	APIServerURL   string
 	KubeConfig     string
 	RequestTimeout time.Duration
@@ -28,6 +29,7 @@ type Config struct {
 }
 
 var defaultConfig = &Config{
+	Mode:           "owner",
 	APIServerURL:   "",
 	KubeConfig:     "",
 	RequestTimeout: time.Second * 30,
@@ -81,6 +83,9 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Version(Version)
 	app.DefaultEnvars()
 
+	// dns-tagger mode
+	app.Flag("mode", "Determines the operation of the dns-tagger (default: owner, options: owner, resource)").Default(defaultConfig.Mode).EnumVar(&cfg.Mode, "owner", "resource")
+
 	// Flags related to Kubernetes
 	app.Flag("server", "The Kubernetes API server to connect to (default: auto-detect)").Default(defaultConfig.APIServerURL).StringVar(&cfg.APIServerURL)
 	app.Flag("kubeconfig", "Retrieve target cluster configuration from a Kubernetes configuration file (default: auto-detect)").Default(defaultConfig.KubeConfig).StringVar(&cfg.KubeConfig)
@@ -92,7 +97,9 @@ func (cfg *Config) ParseFlags(args []string) error {
 
 	// Flags related to operations
 	app.Flag("apply", "When enabled, executes dns changes (default: disabled)").BoolVar(&cfg.Apply)
+	// TODO current-owner-id is optional in "resource" mode
 	app.Flag("current-owner-id", "What owner id to set when records changing ownership").Required().StringVar(&cfg.CurrentOwnerID)
+	// TODO previous-owner-id is optional in "resource" mode
 	app.Flag("previous-owner-id", "What previous owner ids are allowed for migration").Required().PlaceHolder("previous-owner-id").StringsVar(&cfg.PreviousOwnerIDs)
 	app.Flag("dns-zone", "What dns zone should be considered").Required().PlaceHolder("dns-zone").Default(cfg.DNSZones...).StringsVar(&cfg.DNSZones)
 

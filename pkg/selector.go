@@ -33,6 +33,23 @@ func (s *Selector) ClaimEndpointsOwnership(ctx context.Context, endpoints []*reg
 	return updatedRecords, nil
 }
 
+func (s *Selector) ClaimEndpointsResource(ctx context.Context, endpoints []*registry.Endpoint, zones []*registry.Zone) (updatedRecords int, err error) {
+	for _, endpoint := range endpoints {
+		log.Debugf("Processing '%s'", endpoint)
+		zone := findEndpointZone(endpoint, zones)
+		if zone == nil {
+			log.Warnf("Can't find DNS zone information for '%s'", endpoint)
+			continue
+		}
+		newUpdatedRecords, err := s.claimEndpointResource(ctx, endpoint, zone)
+		if err != nil {
+			return updatedRecords, err
+		}
+		updatedRecords += newUpdatedRecords
+	}
+	return updatedRecords, nil
+}
+
 func (s *Selector) claimEndpoint(ctx context.Context, endpoint *registry.Endpoint, zone *registry.Zone) (updatedRecords int, err error) {
 	hostDiscovered := false
 	for _, host := range zone.Hosts {
@@ -51,8 +68,46 @@ func (s *Selector) claimEndpoint(ctx context.Context, endpoint *registry.Endpoin
 					}
 
 					log.Infof("Updating owner info for '%s' to '%s'", registryRecord, s.cfg.CurrentOwnerID)
-					updatedRecord := registryRecord.ClaimOwnership(s.cfg.CurrentOwnerID, endpoint.Resource)
+
+					updatedRecord := registryRecord.NewRecord(s.cfg.CurrentOwnerID, endpoint.Resource)
 					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
+					updatedRecords += updates
+					if err != nil {
+						return updatedRecords, err
+					}
+				}
+			} else {
+				log.Warnf("Missing registry records for '%s'", endpoint)
+			}
+		}
+	}
+	if !hostDiscovered {
+		log.Warnf("Missing host record for '%s'", endpoint)
+	}
+	return updatedRecords, nil
+}
+
+func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry.Endpoint, zone *registry.Zone) (updatedRecords int, err error) {
+	hostDiscovered := false
+	for _, host := range zone.Hosts {
+		if endpoint.Host == host.Name {
+			log.Debugf("Host record found for '%s'", endpoint)
+			hostDiscovered = true
+			if host.IsManaged() {
+				for _, registryRecord := range host.RegistryRecords {
+
+					log.Debugf("Resource value on DNSimple: '%s'", registryRecord.Resource)
+					log.Debugf("Resource value on K8S: '%s'", endpoint.Resource)
+
+					if ( registryRecord.Resource == endpoint.Resource ) {
+						log.Debugf("Resource info up to date for '%s'", registryRecord)
+						continue
+					}
+
+					log.Infof("Updating Resource info for '%s' to '%s'", registryRecord, endpoint.Resource)
+					updatedRecord := registryRecord.NewRecord(s.cfg.CurrentOwnerID, endpoint.Resource)
+					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
+
 					updatedRecords += updates
 					if err != nil {
 						return updatedRecords, err
