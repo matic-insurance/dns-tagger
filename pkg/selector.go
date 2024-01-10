@@ -96,8 +96,8 @@ func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry
 			if host.IsManaged() {
 				for _, registryRecord := range host.RegistryRecords {
 
-					log.Debugf("Resource value on DNSimple: '%s'", registryRecord.Resource)
-					log.Debugf("Resource value on K8S: '%s'", endpoint.Resource)
+					log.Infof("Resource on DNSimple: '%s'", registryRecord.Resource)
+					log.Infof("Resource on K8S: '%s'", endpoint.Resource)
 
 					if ( registryRecord.Resource == endpoint.Resource ) {
 						log.Debugf("Resource info up to date for '%s'", registryRecord)

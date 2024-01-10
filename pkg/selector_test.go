@@ -10,11 +10,12 @@ import (
 )
 
 var (
-	testProvider         *mockProvider
-	currentOwnerId       = "cluster-2"
-	testEndpointResource = "ingress/test/webserver"
-	testEndpointHost     = "webserver.dummy.host"
-	cfg                  = &Config{
+	testProvider          *mockProvider
+	currentOwnerId        = "cluster-2"
+	testEndpointResource  = "ingress/test/webserver"
+	testEndpointResource2 = "ingress/test/webserver2"
+	testEndpointHost      = "webserver.dummy.host"
+	cfg                   = &Config{
 		CurrentOwnerID:   currentOwnerId,
 		PreviousOwnerIDs: []string{"cluster-1"},
 	}
@@ -104,6 +105,32 @@ func TestSelector_UpdateRegistryRecords_MultipleRegistries(t *testing.T) {
 	testProvider.AssertNumberOfCalls(t, "UpdateRegistryRecord", 2)
 	assert.Equal(t, 2, updates, "Correct updates count returned")
 	assert.NoError(t, err)
+}
+
+func TestSelector_UpdateRegistryRecords_SameResource(t *testing.T) {
+	testProvider = &mockProvider{}
+	selector := Selector{provider: testProvider, cfg: cfg}
+	endpoint := &registry.Endpoint{Host: testEndpointHost, Resource: testEndpointResource}
+	zone := createTestZone(currentOwnerId, testEndpointResource)
+
+	updates, err := selector.claimEndpointResource(context.Background(), endpoint, zone)
+	testProvider.AssertNotCalled(t, "UpdateRegistryRecord")
+	assert.Equal(t, 0, updates, "Zero updates count returned")
+	assert.NoError(t, err)
+}
+
+func TestSelector_UpdateRegistryRecords_ProviderErrorResource(t *testing.T) {
+	testProvider = &mockProvider{}
+	selector := Selector{provider: testProvider, cfg: cfg}
+	endpoint := &registry.Endpoint{Host: testEndpointHost, Resource: testEndpointResource2}
+	zone := createTestZone(currentOwnerId, testEndpointResource)
+
+	testProvider.On("UpdateRegistryRecord", context.Background(), mock.Anything, mock.Anything).Return(1, nil).Once()
+	testProvider.On("UpdateRegistryRecord", context.Background(), mock.Anything, mock.Anything).Return(0, errors.New("test"))
+
+	updates, err := selector.claimEndpointResource(context.Background(), endpoint, zone)
+	assert.Equal(t, 1, updates, "Made updates count returned")
+	assert.Error(t, err)
 }
 
 func createTestZone(owner string, resource string) *registry.Zone {
