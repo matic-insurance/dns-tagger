@@ -25,7 +25,7 @@ func main() {
 	zones, dnsProvider := getZones(ctx, cfg)
 	selector := pkg.NewSelector(cfg, dnsProvider)
 	if cfg.Mode == "owner" {
-	 	configureNewOwner(ctx, cfg, selector, sourceEndpoints, zones)
+		configureNewOwner(ctx, cfg, selector, sourceEndpoints, zones)
 	} else {
 		configureNewResource(ctx, cfg, selector, sourceEndpoints, zones)
 	}

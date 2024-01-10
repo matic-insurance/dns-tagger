@@ -99,7 +99,7 @@ func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry
 					log.Infof("Resource on DNSimple: '%s'", registryRecord.Resource)
 					log.Infof("Resource on K8S: '%s'", endpoint.Resource)
 
-					if ( registryRecord.Resource == endpoint.Resource ) {
+					if registryRecord.Resource == endpoint.Resource {
 						log.Debugf("Resource info up to date for '%s'", registryRecord)
 						continue
 					}
