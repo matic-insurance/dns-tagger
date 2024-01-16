@@ -96,8 +96,8 @@ func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry
 			if host.IsManaged() {
 				for _, registryRecord := range host.RegistryRecords {
 
-					log.Infof("Resource on DNSimple: '%s'", registryRecord.Resource)
-					log.Infof("Resource on K8S: '%s'", endpoint.Resource)
+					log.Debugf("Resource on DNSimple: '%s'", registryRecord.Resource)
+					log.Debugf("Resource on K8S: '%s'", endpoint.Resource)
 
 					if registryRecord.Resource == endpoint.Resource {
 						log.Debugf("Resource info up to date for '%s'", registryRecord)
@@ -105,7 +105,7 @@ func (s *Selector) claimEndpointResource(ctx context.Context, endpoint *registry
 					}
 
 					log.Infof("Updating Resource info for '%s' to '%s'", registryRecord, endpoint.Resource)
-					updatedRecord := registryRecord.NewRecord(s.cfg.CurrentOwnerID, endpoint.Resource)
+					updatedRecord := registryRecord.NewRecord(registryRecord.Owner, endpoint.Resource)
 					updates, err := s.provider.UpdateRegistryRecord(ctx, zone, updatedRecord)
 
 					updatedRecords += updates
