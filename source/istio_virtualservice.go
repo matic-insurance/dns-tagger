@@ -186,8 +186,7 @@ func (sc *virtualServiceSource) endpointsFromVirtualService(ctx context.Context,
 		hosts = append(hosts, host)
 	}
 
-	// hosts contains dublicates here
-	// bug or feature ?
+	// TODO hosts contains dublicates here
 
 	for _, host := range hosts {
 		targetGateway, err := sc.targetGatewayForService(ctx, virtualservice, host)
