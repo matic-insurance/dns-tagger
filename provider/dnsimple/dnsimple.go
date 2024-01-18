@@ -57,7 +57,11 @@ func NewDnsimpleProvider(cfg *pkg.Config, zones []string) (provider.Provider, er
 		return nil, err
 	}
 
-	providerInstance.accountID = int64ToString(whoamiResponse.Data.Account.ID)
+	if whoamiResponse.Data.Account != nil {
+		providerInstance.accountID = int64ToString(whoamiResponse.Data.Account.ID)
+	} else {
+		providerInstance.accountID = cfg.AccountId
+	}
 
 	return providerInstance, nil
 }
