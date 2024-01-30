@@ -13,6 +13,7 @@ var Version = "unknown"
 
 type Config struct {
 	Mode           string
+	AccountId      string
 	APIServerURL   string
 	KubeConfig     string
 	RequestTimeout time.Duration
@@ -30,6 +31,7 @@ type Config struct {
 
 var defaultConfig = &Config{
 	Mode:           "owner",
+	AccountId:      "",
 	APIServerURL:   "",
 	KubeConfig:     "",
 	RequestTimeout: time.Second * 30,
@@ -85,6 +87,8 @@ func (cfg *Config) ParseFlags(args []string) error {
 
 	// dns-tagger mode
 	app.Flag("mode", "Determines the operation of the dns-tagger (default: owner, options: owner, resource)").Default(defaultConfig.Mode).EnumVar(&cfg.Mode, "owner", "resource")
+
+	app.Flag("account-id", "DNSimple account id (default: auto-detect)").Default(defaultConfig.AccountId).StringVar(&cfg.AccountId)
 
 	// Flags related to Kubernetes
 	app.Flag("server", "The Kubernetes API server to connect to (default: auto-detect)").Default(defaultConfig.APIServerURL).StringVar(&cfg.APIServerURL)

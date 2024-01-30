@@ -52,13 +52,21 @@ func NewDnsimpleProvider(cfg *pkg.Config, zones []string) (provider.Provider, er
 		zones:    zones,
 	}
 
+	if cfg.AccountId != "" {
+		providerInstance.accountID = cfg.AccountId
+		return providerInstance, nil
+	}
+
 	whoamiResponse, err := providerInstance.identity.Whoami(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	providerInstance.accountID = int64ToString(whoamiResponse.Data.Account.ID)
+	if whoamiResponse.Data.Account == nil {
+		return nil, fmt.Errorf("can not detected DNSimple accout-id, use --account-id to specify it manually")
+	}
 
+	providerInstance.accountID = int64ToString(whoamiResponse.Data.Account.ID)
 	return providerInstance, nil
 }
 
