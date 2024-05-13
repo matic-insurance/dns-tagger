@@ -12,7 +12,7 @@ The motivation to create this library is:
 1. Connect to current k8s cluster and collect active endpoints (sources) managed by ExternalDNS in the cluster
 2. Connect to DNS and collect all hosts and ExternalDNS TXT registry records responsible for those hosts
 3. Modify ExternalDNS TXT registry records - so current ExternalDNS instance is able to manage DNS records that
-   are live in current cluster (owner mode)
+   are live in current cluster (owner mode, enabled by default)
 4. Modify ExternalDNS TXT registry records - so current DNS records will be pointed to specified resource (resource mode)
 
 ### External DNS Setup
@@ -104,6 +104,16 @@ accept new contributions, and/or transfer ownership to community.
 3. Apply changes (same command with `--apply` parameter)
 
    `./bin/dns-tagger --source=istio-virtualservice --previous-owner-id=PREVIUS_CLUSTER --current-owner-id=CURRENT_CLASTER --dns-zone=exmaple.com --apply`
+
+Four resource mode:
+
+1. Verify changes that will be made
+
+   `./bin/dns-tagger --mode=resource --source=istio-virtualservice --previous-owner-id=CURRENT_CLASTER --current-owner-id=CURRENT_CLASTER --dns-zone=exmaple.com`
+
+2. Apply changes (same command with `--apply` parameter)
+
+   `./bin/dns-tagger --mode=resource --source=istio-virtualservice --previous-owner-id=CURRENT_CLASTER --current-owner-id=CURRENT_CLASTER --dns-zone=exmaple.com --apply`
 
 ### Compile binary
 
