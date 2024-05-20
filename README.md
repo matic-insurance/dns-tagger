@@ -4,7 +4,7 @@ Go library that allow to tag (claim ownership) of External DNS records in curren
 The motivation to create this library is:
 - streamline cluster migrations - when creating new k8s cluster and migrating all your workloads that are managed by ExternalDNS
 - cluster failover operations - when you want to switch all traffic to another cluster in failover scenarious
-- application migration from ingress-nginx to istio and vice versa (resource mode)
+- application migration from ingress-nginx to istio and vice versa (resource mode) in the same cluster
 
 ## Description
 ### How it works
