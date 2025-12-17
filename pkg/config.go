@@ -27,6 +27,7 @@ type Config struct {
 	CurrentOwnerID   string
 	PreviousOwnerIDs []string
 	DNSZones         []string
+	TXTPrefix        string
 }
 
 var defaultConfig = &Config{
@@ -41,8 +42,9 @@ var defaultConfig = &Config{
 	LogFormat:      "text",
 	LogLevel:       logrus.InfoLevel.String(),
 
-	Apply:    false,
-	DNSZones: []string{},
+	Apply:     false,
+	DNSZones:  []string{},
+	TXTPrefix: "edns-",
 }
 
 func NewConfig() *Config {
@@ -107,14 +109,13 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Flag("previous-owner-id", "What previous owner ids are allowed for migration").Required().PlaceHolder("previous-owner-id").StringsVar(&cfg.PreviousOwnerIDs)
 	app.Flag("dns-zone", "What dns zone should be considered").Required().PlaceHolder("dns-zone").Default(cfg.DNSZones...).StringsVar(&cfg.DNSZones)
 
+	// TXT record configuration
+	app.Flag("txt-prefix", "Prefix for TXT records").Default(defaultConfig.TXTPrefix).StringVar(&cfg.TXTPrefix)
+
 	// Miscellaneous flags
 	app.Flag("log-format", "The format in which log messages are printed (default: text, options: text, json)").Default(defaultConfig.LogFormat).EnumVar(&cfg.LogFormat, "text", "json")
-	app.Flag("log-level", "Set the level of logging. (default: info, options: panic, debug, info, warning, error, fatal)").Default(defaultConfig.LogLevel).EnumVar(&cfg.LogLevel, allLogLevelsAsStrings()...)
+	app.Flag("log-level", "Set the level of log output (default: info, options: panic, fatal, error, warn, info, debug, trace)").Default(defaultConfig.LogLevel).StringVar(&cfg.LogLevel)
 
 	_, err := app.Parse(args)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

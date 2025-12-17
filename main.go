@@ -16,6 +16,7 @@ import (
 
 func main() {
 	cfg := initConfig()
+	registry.Prefix = cfg.TXTPrefix
 	log.Infof("Running in '%s' mode", cfg.Mode)
 
 	ctx, cancel := context.WithCancel(context.Background())
