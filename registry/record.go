@@ -9,7 +9,7 @@ const ExternalDnsIdentifier = "heritage=external-dns"
 const OwnerId = "external-dns/owner="
 const ResourceId = "external-dns/resource="
 
-var Prefix = "edns-"
+var Prefix string
 
 type Record struct {
 	Name     string
