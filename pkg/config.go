@@ -114,8 +114,12 @@ func (cfg *Config) ParseFlags(args []string) error {
 
 	// Miscellaneous flags
 	app.Flag("log-format", "The format in which log messages are printed (default: text, options: text, json)").Default(defaultConfig.LogFormat).EnumVar(&cfg.LogFormat, "text", "json")
-	app.Flag("log-level", "Set the level of log output (default: info, options: panic, fatal, error, warn, info, debug, trace)").Default(defaultConfig.LogLevel).StringVar(&cfg.LogLevel)
+	app.Flag("log-level", "Set the level of logging. (default: info, options: panic, debug, info, warning, error, fatal)").Default(defaultConfig.LogLevel).EnumVar(&cfg.LogLevel, allLogLevelsAsStrings()...)
 
 	_, err := app.Parse(args)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
