@@ -204,7 +204,7 @@ func testVirtualServiceEndpoints(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			virtualServiceSource, err := NewIstioVirtualServiceSource(context.TODO(), fakeKubernetesClient, fakeIstioClient, tt.targetNamespace)
+			virtualServiceSource, err := NewIstioVirtualServiceSource(context.TODO(), fakeKubernetesClient, fakeIstioClient, tt.targetNamespace, nil)
 			require.NoError(t, err)
 
 			res, err := virtualServiceSource.Endpoints(context.Background())

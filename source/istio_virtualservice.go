@@ -31,10 +31,11 @@ type virtualServiceSource struct {
 	namespace              string
 	serviceInformer        coreinformers.ServiceInformer
 	virtualserviceInformer networkingv1alpha3informer.VirtualServiceInformer
+	labelSelectors         []string
 }
 
 // NewIstioVirtualServiceSource creates a new virtualServiceSource with the given config.
-func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Interface, istioClient istioclient.Interface, namespace string) (Source, error) {
+func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Interface, istioClient istioclient.Interface, namespace string, labelSelectors []string) (Source, error) {
 	// Use shared informers to listen for add/update/delete of services/pods/nodes in the specified namespace.
 	// Set resync period to 0, to prevent processing when nothing has changed
 	informerFactory := kubeinformers.NewSharedInformerFactoryWithOptions(kubeClient, 0, kubeinformers.WithNamespace(namespace))
@@ -82,6 +83,7 @@ func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Int
 		namespace:              namespace,
 		serviceInformer:        serviceInformer,
 		virtualserviceInformer: virtualServiceInformer,
+		labelSelectors:         labelSelectors,
 	}, nil
 }
 
@@ -96,6 +98,13 @@ func (sc *virtualServiceSource) Endpoints(ctx context.Context) ([]*registry.Endp
 	var endpoints []*registry.Endpoint
 
 	for _, virtualService := range virtualServices {
+		// If label selectors are configured, only include VirtualServices that match
+		// at least one of them (OR semantics).
+		if len(sc.labelSelectors) > 0 && !virtualServiceMatchesAnyLabel(virtualService, sc.labelSelectors) {
+			log.Debugf("Skipping VirtualService %s/%s because it does not match any label selector: %v",
+				virtualService.Namespace, virtualService.Name, sc.labelSelectors)
+			continue
+		}
 		// Check controller annotation to see if we are responsible.
 		controller, ok := virtualService.Annotations[controllerAnnotationKey]
 		if ok && controller != controllerAnnotationValue {
@@ -279,6 +288,50 @@ func virtualServiceBindsToGateway(virtualService *networkingv1alpha3.VirtualServ
 				if host == vsHost || (suffixMatch && strings.HasSuffix(vsHost, host[1:])) {
 					return true
 				}
+			}
+		}
+	}
+
+	return false
+}
+
+// virtualServiceMatchesAnyLabel returns true if the given VirtualService has at least
+// one label matching any of the provided selectors. Selectors are strings in the
+// form "key:value" or "key=value". Matching uses OR semantics across selectors.
+func virtualServiceMatchesAnyLabel(virtualService *networkingv1alpha3.VirtualService, selectors []string) bool {
+	if len(selectors) == 0 {
+		return true
+	}
+	if virtualService.Labels == nil {
+		return false
+	}
+
+	for _, sel := range selectors {
+		sel = strings.TrimSpace(sel)
+		if sel == "" {
+			continue
+		}
+
+		var key, val string
+		if parts := strings.SplitN(sel, ":", 2); len(parts) == 2 {
+			key = strings.TrimSpace(parts[0])
+			val = strings.TrimSpace(parts[1])
+		} else if parts := strings.SplitN(sel, "=", 2); len(parts) == 2 {
+			key = strings.TrimSpace(parts[0])
+			val = strings.TrimSpace(parts[1])
+		} else {
+			// If selector has no separator, treat it as key-only and just check presence.
+			key = sel
+			val = ""
+		}
+
+		if key == "" {
+			continue
+		}
+
+		if labelVal, ok := virtualService.Labels[key]; ok {
+			if val == "" || labelVal == val {
+				return true
 			}
 		}
 	}

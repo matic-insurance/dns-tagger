@@ -86,10 +86,11 @@ func handleSigterm(cancel func()) {
 func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoint {
 	// Create a source.Config from the flags passed by the user.
 	sourceCfg := &source.Config{
-		Namespace:      cfg.Namespace,
-		KubeConfig:     cfg.KubeConfig,
-		APIServerURL:   cfg.APIServerURL,
-		RequestTimeout: cfg.RequestTimeout,
+		Namespace:            cfg.Namespace,
+		KubeConfig:           cfg.KubeConfig,
+		APIServerURL:         cfg.APIServerURL,
+		RequestTimeout:       cfg.RequestTimeout,
+		VirtualServiceLabels: cfg.VirtualServiceLabels,
 	}
 	sources, err := source.ByNames(ctx, &source.SingletonClientGenerator{
 		KubeConfig:   cfg.KubeConfig,

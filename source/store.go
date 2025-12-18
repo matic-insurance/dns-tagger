@@ -21,13 +21,16 @@ import (
 // ErrSourceNotFound is returned when a requested source doesn't exist.
 var ErrSourceNotFound = errors.New("source not found")
 
-// Config holds shared configuration options for all Sources.
 type Config struct {
-	Namespace      string
-	KubeConfig     string
-	APIServerURL   string
-	RequestTimeout time.Duration
-	UpdateEvents   bool
+	Namespace            string
+	KubeConfig           string
+	APIServerURL         string
+	RequestTimeout       time.Duration
+	UpdateEvents         bool
+	// VirtualServiceLabels holds label selectors that will be applied only to
+	// Istio VirtualService sources. Each element is a single label expression
+	// like "key:value" or "key=value".
+	VirtualServiceLabels []string
 }
 
 // ClientGenerator provides clients
@@ -132,7 +135,7 @@ func BuildWithConfig(ctx context.Context, source string, p ClientGenerator, cfg 
 		if err != nil {
 			return nil, err
 		}
-		return NewIstioVirtualServiceSource(ctx, kubernetesClient, istioClient, cfg.Namespace)
+		return NewIstioVirtualServiceSource(ctx, kubernetesClient, istioClient, cfg.Namespace, cfg.VirtualServiceLabels)
 		//case "fake":
 		//	return NewFakeSource(cfg.FQDNTemplate)
 	}
