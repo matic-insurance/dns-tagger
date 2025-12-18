@@ -9,6 +9,8 @@ const ExternalDnsIdentifier = "heritage=external-dns"
 const OwnerId = "external-dns/owner="
 const ResourceId = "external-dns/resource="
 
+var Prefix string
+
 type Record struct {
 	Name     string
 	Owner    string
@@ -30,8 +32,8 @@ func (r Record) IsManaging(host *Host) bool {
 
 	// top level domain match for both records
 	if hostBase == recordBase {
-		//same domain, txt prefix, txt suffix
-		return recordDomain == hostDomain || strings.HasSuffix(recordDomain, hostDomain) || strings.HasPrefix(recordDomain, hostDomain)
+		//same domain, check prefix
+		return recordDomain == hostDomain || recordDomain == Prefix+hostDomain
 	}
 	return false
 }

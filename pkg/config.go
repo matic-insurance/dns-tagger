@@ -27,6 +27,7 @@ type Config struct {
 	CurrentOwnerID   string
 	PreviousOwnerIDs []string
 	DNSZones         []string
+	TXTPrefix        string
 }
 
 var defaultConfig = &Config{
@@ -41,8 +42,9 @@ var defaultConfig = &Config{
 	LogFormat:      "text",
 	LogLevel:       logrus.InfoLevel.String(),
 
-	Apply:    false,
-	DNSZones: []string{},
+	Apply:     false,
+	DNSZones:  []string{},
+	TXTPrefix: "edns-",
 }
 
 func NewConfig() *Config {
@@ -106,6 +108,9 @@ func (cfg *Config) ParseFlags(args []string) error {
 	// TODO previous-owner-id is optional in "resource" mode
 	app.Flag("previous-owner-id", "What previous owner ids are allowed for migration").Required().PlaceHolder("previous-owner-id").StringsVar(&cfg.PreviousOwnerIDs)
 	app.Flag("dns-zone", "What dns zone should be considered").Required().PlaceHolder("dns-zone").Default(cfg.DNSZones...).StringsVar(&cfg.DNSZones)
+
+	// TXT record configuration
+	app.Flag("txt-prefix", "Prefix for TXT records").Default(defaultConfig.TXTPrefix).StringVar(&cfg.TXTPrefix)
 
 	// Miscellaneous flags
 	app.Flag("log-format", "The format in which log messages are printed (default: text, options: text, json)").Default(defaultConfig.LogFormat).EnumVar(&cfg.LogFormat, "text", "json")
