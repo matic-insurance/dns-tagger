@@ -3,6 +3,8 @@ package source
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/matic-insurance/dns-tager/registry"
 	log "github.com/sirupsen/logrus"
 	networkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -16,7 +18,6 @@ import (
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"strings"
 )
 
 // IstioMeshGateway is the built in gateway for all sidecars
@@ -100,7 +101,7 @@ func (sc *virtualServiceSource) Endpoints(ctx context.Context) ([]*registry.Endp
 	for _, virtualService := range virtualServices {
 		// If label selectors are configured, only include VirtualServices that match
 		// at least one of them (OR semantics).
-		if len(sc.labelSelectors) > 0 && !virtualServiceMatchesAnyLabel(virtualService, sc.labelSelectors) {
+		if len(sc.labelSelectors) > 0 && !matchesAnyLabel(virtualService.Labels, sc.labelSelectors) {
 			log.Debugf("Skipping VirtualService %s/%s because it does not match any label selector: %v",
 				virtualService.Namespace, virtualService.Name, sc.labelSelectors)
 			continue
@@ -191,9 +192,7 @@ func (sc *virtualServiceSource) endpointsFromVirtualService(ctx context.Context,
 	}
 
 	hostnameList := getHostnamesFromAnnotations(virtualservice.Annotations)
-	for _, host := range hostnameList {
-		hosts = append(hosts, host)
-	}
+	hosts = append(hosts, hostnameList...)
 
 	// TODO hosts contains dublicates here
 
@@ -288,50 +287,6 @@ func virtualServiceBindsToGateway(virtualService *networkingv1alpha3.VirtualServ
 				if host == vsHost || (suffixMatch && strings.HasSuffix(vsHost, host[1:])) {
 					return true
 				}
-			}
-		}
-	}
-
-	return false
-}
-
-// virtualServiceMatchesAnyLabel returns true if the given VirtualService has at least
-// one label matching any of the provided selectors. Selectors are strings in the
-// form "key:value" or "key=value". Matching uses OR semantics across selectors.
-func virtualServiceMatchesAnyLabel(virtualService *networkingv1alpha3.VirtualService, selectors []string) bool {
-	if len(selectors) == 0 {
-		return true
-	}
-	if virtualService.Labels == nil {
-		return false
-	}
-
-	for _, sel := range selectors {
-		sel = strings.TrimSpace(sel)
-		if sel == "" {
-			continue
-		}
-
-		var key, val string
-		if parts := strings.SplitN(sel, ":", 2); len(parts) == 2 {
-			key = strings.TrimSpace(parts[0])
-			val = strings.TrimSpace(parts[1])
-		} else if parts := strings.SplitN(sel, "=", 2); len(parts) == 2 {
-			key = strings.TrimSpace(parts[0])
-			val = strings.TrimSpace(parts[1])
-		} else {
-			// If selector has no separator, treat it as key-only and just check presence.
-			key = sel
-			val = ""
-		}
-
-		if key == "" {
-			continue
-		}
-
-		if labelVal, ok := virtualService.Labels[key]; ok {
-			if val == "" || labelVal == val {
-				return true
 			}
 		}
 	}
