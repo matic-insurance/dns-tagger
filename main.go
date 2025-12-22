@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/matic-insurance/dns-tager/pkg"
 	"github.com/matic-insurance/dns-tager/provider"
 	"github.com/matic-insurance/dns-tager/provider/dnsimple"
 	"github.com/matic-insurance/dns-tager/registry"
 	"github.com/matic-insurance/dns-tager/source"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -90,6 +91,7 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 		KubeConfig:     cfg.KubeConfig,
 		APIServerURL:   cfg.APIServerURL,
 		RequestTimeout: cfg.RequestTimeout,
+		Labels:         cfg.Labels,
 	}
 	sources, err := source.ByNames(ctx, &source.SingletonClientGenerator{
 		KubeConfig:   cfg.KubeConfig,

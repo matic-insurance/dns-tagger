@@ -109,6 +109,7 @@ func testIngressEndpoints(t *testing.T) {
 				context.TODO(),
 				fakeClient,
 				tt.targetNamespace,
+				nil, // No label filters for tests
 			)
 
 			// Compare retrieved ingresses with expected ones

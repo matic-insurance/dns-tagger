@@ -19,9 +19,13 @@ type Config struct {
 	RequestTimeout time.Duration
 	Sources        []string
 	Namespace      string
-	Provider       string
-	LogFormat      string
-	LogLevel       string
+	// Labels holds label selectors for filtering sources (ingress and istio-virtualservice).
+	// Each entry should be in form "key:value" or "key=value".
+	// If multiple labels are provided, they are combined with OR semantics.
+	Labels    []string
+	Provider  string
+	LogFormat string
+	LogLevel  string
 
 	Apply            bool
 	CurrentOwnerID   string
@@ -38,6 +42,7 @@ var defaultConfig = &Config{
 	RequestTimeout: time.Second * 30,
 	Sources:        nil,
 	Namespace:      "",
+	Labels:         nil,
 	Provider:       "",
 	LogFormat:      "text",
 	LogLevel:       logrus.InfoLevel.String(),
@@ -100,6 +105,7 @@ func (cfg *Config) ParseFlags(args []string) error {
 	// Flags related to processing source
 	app.Flag("source", "The resource types that are queried for endpoints; specify multiple times for multiple sources (required, options: ingress, istio-virtualservice").Required().PlaceHolder("source").EnumsVar(&cfg.Sources, "ingress", "istio-virtualservice")
 	app.Flag("namespace", "Limit resources queried for endpoints to a specific namespace (default: all namespaces)").Default(defaultConfig.Namespace).StringVar(&cfg.Namespace)
+	app.Flag("label", "Label selector to filter sources (ingress and istio-virtualservice) by label; may be specified multiple times. Format: \"key:value\" or \"key=value\". If multiple labels are provided, they are combined with OR semantics. (default: no filter)").PlaceHolder("label").StringsVar(&cfg.Labels)
 
 	// Flags related to operations
 	app.Flag("apply", "When enabled, executes dns changes (default: disabled)").BoolVar(&cfg.Apply)

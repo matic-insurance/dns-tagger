@@ -58,3 +58,48 @@ func waitForCacheSync(ctx context.Context, factory informerFactory) error {
 	}
 	return nil
 }
+
+// matchesAnyLabel returns true if the given labels map has at least one label
+// matching any of the provided selectors. Selectors are strings in the form
+// "key:value" or "key=value". Matching uses OR semantics across selectors.
+// If selectors is empty, returns true (no filter applied).
+func matchesAnyLabel(labelsMap map[string]string, selectors []string) bool {
+	if len(selectors) == 0 {
+		return true
+	}
+	if labelsMap == nil {
+		return false
+	}
+
+	for _, sel := range selectors {
+		sel = strings.TrimSpace(sel)
+		if sel == "" {
+			continue
+		}
+
+		var key, val string
+		if parts := strings.SplitN(sel, ":", 2); len(parts) == 2 {
+			key = strings.TrimSpace(parts[0])
+			val = strings.TrimSpace(parts[1])
+		} else if parts := strings.SplitN(sel, "=", 2); len(parts) == 2 {
+			key = strings.TrimSpace(parts[0])
+			val = strings.TrimSpace(parts[1])
+		} else {
+			// If selector has no separator, treat it as key-only and just check presence.
+			key = sel
+			val = ""
+		}
+
+		if key == "" {
+			continue
+		}
+
+		if labelVal, ok := labelsMap[key]; ok {
+			if val == "" || labelVal == val {
+				return true
+			}
+		}
+	}
+
+	return false
+}

@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+
 	"github.com/matic-insurance/dns-tager/registry"
 	log "github.com/sirupsen/logrus"
 	networkv1 "k8s.io/api/networking/v1"
@@ -17,10 +18,11 @@ type ingressSource struct {
 	client          kubernetes.Interface
 	namespace       string
 	ingressInformer netinformers.IngressInformer
+	labelSelectors  []string
 }
 
 // NewIngressSource creates a new ingressSource with the given config.
-func NewIngressSource(ctx context.Context, kubeClient kubernetes.Interface, namespace string) (Source, error) {
+func NewIngressSource(ctx context.Context, kubeClient kubernetes.Interface, namespace string, labelSelectors []string) (Source, error) {
 	// Use shared informer to listen for add/update/delete of ingresses in the specified namespace.
 	// Set resync period to 0, to prevent processing when nothing has changed.
 	informerFactory := kubeinformers.NewSharedInformerFactoryWithOptions(kubeClient, 0, kubeinformers.WithNamespace(namespace))
@@ -45,6 +47,7 @@ func NewIngressSource(ctx context.Context, kubeClient kubernetes.Interface, name
 		client:          kubeClient,
 		namespace:       namespace,
 		ingressInformer: ingressInformer,
+		labelSelectors:  labelSelectors,
 	}
 	return sc, nil
 }
@@ -60,6 +63,13 @@ func (sc *ingressSource) Endpoints(_ context.Context) ([]*registry.Endpoint, err
 	var endpoints []*registry.Endpoint
 
 	for _, ing := range ingresses {
+		// If label selectors are configured, only include Ingresses that match
+		// at least one of them (OR semantics).
+		if len(sc.labelSelectors) > 0 && !matchesAnyLabel(ing.Labels, sc.labelSelectors) {
+			log.Debugf("Skipping ingress %s/%s because it does not match any label selector: %v",
+				ing.Namespace, ing.Name, sc.labelSelectors)
+			continue
+		}
 		// Check controller annotation to see if we are responsible.
 		controller, ok := ing.Annotations[controllerAnnotationKey]
 		if ok && controller != controllerAnnotationValue {

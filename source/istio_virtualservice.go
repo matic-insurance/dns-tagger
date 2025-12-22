@@ -3,6 +3,8 @@ package source
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/matic-insurance/dns-tager/registry"
 	log "github.com/sirupsen/logrus"
 	networkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -16,7 +18,6 @@ import (
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"strings"
 )
 
 // IstioMeshGateway is the built in gateway for all sidecars
@@ -31,10 +32,11 @@ type virtualServiceSource struct {
 	namespace              string
 	serviceInformer        coreinformers.ServiceInformer
 	virtualserviceInformer networkingv1alpha3informer.VirtualServiceInformer
+	labelSelectors         []string
 }
 
 // NewIstioVirtualServiceSource creates a new virtualServiceSource with the given config.
-func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Interface, istioClient istioclient.Interface, namespace string) (Source, error) {
+func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Interface, istioClient istioclient.Interface, namespace string, labelSelectors []string) (Source, error) {
 	// Use shared informers to listen for add/update/delete of services/pods/nodes in the specified namespace.
 	// Set resync period to 0, to prevent processing when nothing has changed
 	informerFactory := kubeinformers.NewSharedInformerFactoryWithOptions(kubeClient, 0, kubeinformers.WithNamespace(namespace))
@@ -82,6 +84,7 @@ func NewIstioVirtualServiceSource(ctx context.Context, kubeClient kubernetes.Int
 		namespace:              namespace,
 		serviceInformer:        serviceInformer,
 		virtualserviceInformer: virtualServiceInformer,
+		labelSelectors:         labelSelectors,
 	}, nil
 }
 
@@ -96,6 +99,13 @@ func (sc *virtualServiceSource) Endpoints(ctx context.Context) ([]*registry.Endp
 	var endpoints []*registry.Endpoint
 
 	for _, virtualService := range virtualServices {
+		// If label selectors are configured, only include VirtualServices that match
+		// at least one of them (OR semantics).
+		if len(sc.labelSelectors) > 0 && !matchesAnyLabel(virtualService.Labels, sc.labelSelectors) {
+			log.Debugf("Skipping VirtualService %s/%s because it does not match any label selector: %v",
+				virtualService.Namespace, virtualService.Name, sc.labelSelectors)
+			continue
+		}
 		// Check controller annotation to see if we are responsible.
 		controller, ok := virtualService.Annotations[controllerAnnotationKey]
 		if ok && controller != controllerAnnotationValue {
@@ -182,9 +192,7 @@ func (sc *virtualServiceSource) endpointsFromVirtualService(ctx context.Context,
 	}
 
 	hostnameList := getHostnamesFromAnnotations(virtualservice.Annotations)
-	for _, host := range hostnameList {
-		hosts = append(hosts, host)
-	}
+	hosts = append(hosts, hostnameList...)
 
 	// TODO hosts contains dublicates here
 
