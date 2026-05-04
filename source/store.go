@@ -22,11 +22,11 @@ import (
 var ErrSourceNotFound = errors.New("source not found")
 
 type Config struct {
-	Namespace            string
-	KubeConfig           string
-	APIServerURL         string
-	RequestTimeout       time.Duration
-	UpdateEvents bool
+	Namespace      string
+	KubeConfig     string
+	APIServerURL   string
+	RequestTimeout time.Duration
+	UpdateEvents   bool
 	// Labels holds label selectors that will be applied to sources (ingress and istio-virtualservice).
 	// Each element is a single label expression like "key:value" or "key=value".
 	// Matching uses OR semantics across selectors.

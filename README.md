@@ -72,7 +72,7 @@ This is an early prototype that Matic team is testing. At the moment we use it a
 has limited support of infrastructure components, and external DNS configurations
 
 Supported Sources:
-  - Ingress source (no filtering)
+  - Ingress source
   - Istio Virtual Service
   - Istio Gateway
 
@@ -105,7 +105,42 @@ accept new contributions, and/or transfer ownership to community.
 
    `./bin/dns-tagger --source=istio-virtualservice --previous-owner-id=PREVIUS_CLUSTER --current-owner-id=CURRENT_CLASTER --dns-zone=exmaple.com --apply`
 
-Four resource mode:
+### Filtering by label
+
+Use `--label` to process only sources (Ingress or Istio VirtualService) that carry a specific Kubernetes label.
+The flag can be repeated; matching uses **OR** semantics — a source is included if it matches **any** of the provided labels.
+
+Format: `key:value` or `key=value`. Specifying only a key (no value) matches any source that has that label present.
+
+**Examples:**
+
+```bash
+# Only claim endpoints from VirtualServices labeled app=frontend
+./bin/dns-tagger --source=istio-virtualservice \
+  --previous-owner-id=OLD_CLUSTER \
+  --current-owner-id=NEW_CLUSTER \
+  --dns-zone=example.com \
+  --label=app:frontend
+
+# Match either app=frontend OR app=backend (OR semantics)
+./bin/dns-tagger --source=istio-virtualservice \
+  --previous-owner-id=OLD_CLUSTER \
+  --current-owner-id=NEW_CLUSTER \
+  --dns-zone=example.com \
+  --label=app:frontend \
+  --label=app:backend
+
+# Match any source that has the "team" label set (any value)
+./bin/dns-tagger --source=ingress \
+  --previous-owner-id=OLD_CLUSTER \
+  --current-owner-id=NEW_CLUSTER \
+  --dns-zone=example.com \
+  --label=team
+```
+
+When `--label` is omitted, all sources are processed (no label filter applied).
+
+For resource mode:
 
 1. Verify changes that will be made
 

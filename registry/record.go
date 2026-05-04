@@ -30,12 +30,12 @@ func (r Record) IsManaging(host *Host) bool {
 	hostDomain := hostParts[0]
 	hostBase := hostParts[1]
 
-	// top level domain match for both records
-	if hostBase == recordBase {
-		//same domain, check prefix
-		return recordDomain == hostDomain || recordDomain == Prefix+hostDomain
+	if hostBase != recordBase {
+		return false
 	}
-	return false
+	return recordDomain == hostDomain ||
+		strings.HasSuffix(recordDomain, "-"+hostDomain) ||
+		strings.HasPrefix(recordDomain, hostDomain+"-")
 }
 
 func (r Record) NewRecord(ownerId string, resource string) *Record {
