@@ -78,6 +78,7 @@ Supported Sources:
 
 Supported DNS providers
   - DNSimple
+  - Cloudflare
 
 Supported External DNS Configs
   - Registry TXT
@@ -86,6 +87,36 @@ Supported External DNS Configs
 
 If you find this tool usable in your environment - we are committed to provide some level of development,
 accept new contributions, and/or transfer ownership to community.
+
+## DNS providers
+
+`dns-tagger` supports DNSimple and Cloudflare. By default (`--provider=auto`) it detects the
+provider for **each** `--dns-zone` independently by looking up the zone's live NS records, so a
+single run can mix zones hosted on different providers. If a zone's nameservers don't match a
+known provider the run fails with a clear, per-zone error — pass `--provider=cloudflare` or
+`--provider=dnsimple` to force a specific provider and skip detection.
+
+Authentication is provided via environment variables; only the provider(s) actually used in a
+run need to be set:
+
+| Provider   | Env var                | Notes                                              |
+|------------|------------------------|----------------------------------------------------|
+| DNSimple   | `DNSIMPLE_OAUTH`       | OAuth token. Account id auto-detected (or `--account-id`). |
+| Cloudflare | `CLOUDFLARE_API_TOKEN` | Scoped API token with DNS read/edit on the zone(s). |
+
+```bash
+# Auto-detect per zone (default). foo.com on Cloudflare, bar.com on DNSimple — both work:
+export CLOUDFLARE_API_TOKEN=...
+export DNSIMPLE_OAUTH=...
+./bin/dns-tagger --source=ingress \
+  --previous-owner-id=OLD_CLUSTER --current-owner-id=NEW_CLUSTER \
+  --dns-zone=foo.com --dns-zone=bar.com
+
+# Force Cloudflare and skip NS detection:
+./bin/dns-tagger --provider=cloudflare --source=ingress \
+  --previous-owner-id=OLD_CLUSTER --current-owner-id=NEW_CLUSTER \
+  --dns-zone=foo.com
+```
 
 ## How to use
 

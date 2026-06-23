@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/matic-insurance/dns-tager/pkg"
 	"github.com/matic-insurance/dns-tager/provider"
+	"github.com/matic-insurance/dns-tager/provider/cloudflare"
 	"github.com/matic-insurance/dns-tager/provider/dnsimple"
 	"github.com/matic-insurance/dns-tager/registry"
 	"github.com/matic-insurance/dns-tager/source"
@@ -122,7 +124,7 @@ func getSourceEndpoints(ctx context.Context, cfg *pkg.Config) []*registry.Endpoi
 }
 
 func getZones(ctx context.Context, cfg *pkg.Config) ([]*registry.Zone, provider.Provider) {
-	dnsProvider, err := dnsimple.NewDnsimpleProvider(cfg, cfg.DNSZones)
+	dnsProvider, err := buildProvider(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,4 +136,57 @@ func getZones(ctx context.Context, cfg *pkg.Config) ([]*registry.Zone, provider.
 	}
 
 	return zones, dnsProvider
+}
+
+// buildProvider determines the DNS provider for each configured zone (either
+// auto-detected from NS records or forced via --provider), groups the zones by
+// provider, and returns a single provider. When zones span more than one
+// provider it returns a RoutingProvider that dispatches per zone.
+func buildProvider(ctx context.Context, cfg *pkg.Config) (provider.Provider, error) {
+	// Preserve zone order while grouping by provider kind.
+	groups := make(map[string][]string)
+	var order []string
+	for _, zone := range cfg.DNSZones {
+		kind := cfg.Provider
+		if kind == "" || kind == "auto" {
+			detected, err := provider.DetectProvider(ctx, zone, cfg.RequestTimeout)
+			if err != nil {
+				return nil, err
+			}
+			kind = detected
+		}
+		log.Infof("zone %s → %s", zone, kind)
+		if _, seen := groups[kind]; !seen {
+			order = append(order, kind)
+		}
+		groups[kind] = append(groups[kind], zone)
+	}
+
+	byZone := make(map[string]provider.Provider)
+	var all []provider.Provider
+	for _, kind := range order {
+		zones := groups[kind]
+		var p provider.Provider
+		var err error
+		switch kind {
+		case provider.KindCloudflare:
+			p, err = cloudflare.NewCloudflareProvider(cfg, zones)
+		case provider.KindDNSimple:
+			p, err = dnsimple.NewDnsimpleProvider(cfg, zones)
+		default:
+			return nil, fmt.Errorf("unsupported DNS provider '%s'", kind)
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, zone := range zones {
+			byZone[zone] = p
+		}
+		all = append(all, p)
+	}
+
+	if len(all) == 1 {
+		return all[0], nil
+	}
+	return provider.NewRoutingProvider(byZone, all), nil
 }
