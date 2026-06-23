@@ -43,7 +43,7 @@ var defaultConfig = &Config{
 	Sources:        nil,
 	Namespace:      "",
 	Labels:         nil,
-	Provider:       "",
+	Provider:       "auto",
 	LogFormat:      "text",
 	LogLevel:       logrus.InfoLevel.String(),
 
@@ -96,6 +96,8 @@ func (cfg *Config) ParseFlags(args []string) error {
 	app.Flag("mode", "Determines the operation of the dns-tagger (default: owner, options: owner, resource)").Default(defaultConfig.Mode).EnumVar(&cfg.Mode, "owner", "resource")
 
 	app.Flag("account-id", "DNSimple account id (default: auto-detect)").Default(defaultConfig.AccountId).StringVar(&cfg.AccountId)
+
+	app.Flag("provider", "DNS provider selection (default: auto = detect per-zone via NS records; options: auto, cloudflare, dnsimple)").Default(defaultConfig.Provider).EnumVar(&cfg.Provider, "auto", "cloudflare", "dnsimple")
 
 	// Flags related to Kubernetes
 	app.Flag("server", "The Kubernetes API server to connect to (default: auto-detect)").Default(defaultConfig.APIServerURL).StringVar(&cfg.APIServerURL)

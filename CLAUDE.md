@@ -28,7 +28,7 @@ go test ./registry/... -run TestRecord -v
   --dns-zone=example.com
 ```
 
-**Required environment variable:** `DNSIMPLE_OAUTH` (OAuth token for DNSimple API).
+**Required environment variable (per provider used):** `DNSIMPLE_OAUTH` (OAuth token for DNSimple API) and/or `CLOUDFLARE_API_TOKEN` (API token for Cloudflare API). Only the provider(s) actually resolved for the given `--dns-zone` set need their token.
 
 All CLI flags map to env vars automatically via kingpin `DefaultEnvars()` — e.g. `--current-owner-id` → `CURRENT_OWNER_ID`.
 
@@ -61,15 +61,19 @@ DNSimple    → provider → []Zone (each with []Host, each Host with []Record)
 
 **`provider/`** — reads and writes DNS
 - `Provider` interface: `ReadZones`, `UpdateRegistryRecord`, `Whoami`
-- `dnsimple/dnsimple.go`: only concrete implementation. `ReadZones` paginates all records, separates host records from TXT registry records, then links registry records to their hosts. `UpdateRegistryRecord` is a no-op in dry-run mode.
+- `dnsimple/dnsimple.go`: DNSimple implementation. `ReadZones` paginates all records, separates host records from TXT registry records, then links registry records to their hosts. `UpdateRegistryRecord` is a no-op in dry-run mode.
+- `cloudflare/cloudflare.go`: Cloudflare implementation (auth via `CLOUDFLARE_API_TOKEN`). Same `ReadZones`/`UpdateRegistryRecord` shape; uses `cloudflare-go`. Cloudflare returns record names as FQDNs (no `name.zone` concatenation). `ListDNSRecords` auto-paginates when Page/PerPage are unset.
+- `detect.go`: `DetectProvider` resolves a zone's NS records and `classifyNameservers` maps them to a provider kind (`ns.cloudflare.com` → cloudflare, `dnsimple.com` → dnsimple). Unknown → error.
+- `routing.go`: `RoutingProvider` dispatches `UpdateRegistryRecord` to the provider owning each zone, so one run can span multiple providers.
 
 **`pkg/`** — orchestration and configuration
 - `config.go`: `Config` struct + kingpin flag parsing. Default mode is `owner`, default `--txt-prefix` is `edns-`, `--apply` defaults to false (dry-run)
 - `selector.go`: `Selector` drives the two modes:
   - **owner mode** (`ClaimEndpointsOwnership`): updates TXT records where owner ∈ `--previous-owner-id` and owner ≠ `--current-owner-id`
   - **resource mode** (`ClaimEndpointsResource`): updates TXT records where the `resource` field differs from the K8s source resource (owner is preserved)
+- `config.go` `--provider` flag: `auto` (default, detect per zone via NS records), `cloudflare`, or `dnsimple`
 
-**`main.go`** — wires the above; the only place that touches `dnsimple.NewDnsimpleProvider` directly.
+**`main.go`** — wires the above. `buildProvider` resolves each `--dns-zone` to a provider (auto-detected or forced via `--provider`), groups zones by provider, and returns a `RoutingProvider` when zones span more than one. This is the only place that touches `dnsimple.NewDnsimpleProvider` / `cloudflare.NewCloudflareProvider` directly.
 
 ## Key behaviours to be aware of
 
